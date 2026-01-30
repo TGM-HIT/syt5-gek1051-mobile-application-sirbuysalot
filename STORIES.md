@@ -27,14 +27,12 @@ Eine Progressive Web App (PWA) für gemeinsame Einkaufslisten mit Offline-First-
 [11] Offline-Speicherung (lokal)
  └── [12] Auto-Sync bei Reconnect
       └── [13] Konfliktbehandlung
+           └── [16] P2P-Sync (BitChat) [optional]
 
 [10] Liste löschen ── abhängig von [1]
 [14] Darkmode ── unabhängig
+[15] Deployment (global erreichbar) ── abhängig von [1-13]
 ```
-
-
-
-
 
 ## Auflistung
 
@@ -54,6 +52,8 @@ Eine Progressive Web App (PWA) für gemeinsame Einkaufslisten mit Offline-First-
 | 12  | Als Benutzer möchte ich, dass meine offline gemachten Änderungen automatisch mit dem Server synchronisiert werden, sobald ich wieder online bin.                    | 5   |      | MH   |        |
 | 13  | Als Benutzer möchte ich bei Sync-Konflikten (z.B. gleichzeitige Änderungen) informiert werden und die aktuellste Version sehen, damit keine Daten verloren gehen.   | 3   |      | MH   |        |
 | 14  | Als Benutzer möchte ich einen Darkmode aktivieren können, um meine Augen zu schonen.                                                                                | 2   |      | N2H  |        |
+| 15  | Als Benutzer möchte ich über eine öffentliche URL auf die App zugreifen können (Deployment), damit ich sie von überall nutzen kann.                                 | 3   |      | SH   |        |
+| 16  | Als Benutzer möchte ich, dass die Synchronisation auch über P2P funktioniert (z.B. BitChat), damit die App dezentral nutzbar ist.                                   | 5   |      | N2H  |        |
 
 ## Definition of Done
 
