@@ -104,20 +104,6 @@ Eine Progressive Web App (PWA) für gemeinsame Einkaufslisten mit Offline-First-
 
 ---
 
-## Mapping auf Bewertungskriterien
-
-| Bewertung | Anforderung | Stories |
-|-----------|-------------|---------|
-| **GK überwiegend** | Userstories definiert | ✅ Dieses Dokument |
-| **GK zur Gänze** | Must-Have Stories funktional | 1-14 |
-| **GK zur Gänze** | Offline-Verfügbarkeit | 12 |
-| **EK überwiegend** | Replikation/Konsistenz | 13, 14 |
-| **EK überwiegend** | Should-Have Stories | 15-18 |
-| **EK zur Gänze** | System global erreichbar | 17 |
-| **EK zur Gänze** | Nice-to-Have Stories | 19-24 |
-
----
-
 ## Story Points Übersicht
 
 | Prio | Stories | SP |
@@ -127,7 +113,7 @@ Eine Progressive Web App (PWA) für gemeinsame Einkaufslisten mit Offline-First-
 | Nice to Have | 19-24 | 39 |
 | **Gesamt** | **24 Stories** | **120** |
 
-**Zeitaufwand:** 120 SP × 40 Min = **4.800 Min = 80 Stunden**
+**Zeitaufwand:** 120 SP × 40 Min = 80 Stunden
 
 ---
 
