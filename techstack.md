@@ -191,3 +191,56 @@ Für die CI/CD soll das Actions System von Github genutzt werden.
 - **Node.js** (für Frontend-Build in CI/CD) – Version: **22.0.0 LTS**
   
   - Dokumentation: [Node.js 22 Docs](https://nodejs.org/docs/latest-v22.x/api/)
+
+---
+
+### Testing Tools
+
+Um die Stabilität und die Offline-Funktionalität (Must-Have Stories) zu gewährleisten, werden folgende Test-Frameworks eingesetzt:
+
+**Frontend (Unit & Component Tests):**
+
+* **Vitest** – Version: **2.1.0** [Vitest Docs](https://vitest.dev/)
+
+* **Vue Test Utils** – Version: **2.4.0** [Vue Test Utils](https://test-utils.vuejs.org/)
+
+**Backend (Unit Tests):**
+
+* **JUnit 5** (in Spring Boot Starter Test enthalten) [JUnit 5 User Guide](https://junit.org/junit5/docs/current/user-guide/)
+
+**End-to-End (E2E) & UI-Testing:**
+
+* **Playwright**  [Playwright Docs](https://playwright.dev/)
+
+---
+
+## Synchronisationsdesign
+
+### Datenhaltung (Data Persistence)
+
+Die App nutzt 2 Storages ( Lokal und Auf dem Server):
+
+1. **Server-Side:** PostgreSQL als "Source of Truth".
+2. **Client-Side:** **Dexie.js (IndexedDB)** als lokaler Cache. Alle Nutzeraktionen werden primär in die lokale Datenbank geschrieben, um Latenzfreiheit und Offline-Betrieb zu garantieren.
+
+### Synchronisationsansatz (Sync-Logik)
+
+Wir nutzen einen **Reactivity-First-Ansatz** mit WebSockets für Echtzeit-Updates und REST für Initial-Loads.
+
+**Ablauf der Synchronisation:**
+
+* **Online-Modus:**  Änderungen (z.B. Produkt abhaken) werden per an den Server gesendet.
+
+* Der Server verteilt die Änderung an alle anderen verbundenen Clients der Liste.
+
+* **Offline-Modus:**
+
+* Die PWA erkennt den Verbindungsverlust via `navigator.onLine`.
+
+* Änderungen werden mit einem Flag `synced: false` und einem `timestamp` in **Dexie.js** markiert.
+
+* **Re-Synchronisation (Back Online):**
+
+* Sobald die Verbindung wiederhergestellt ist, pusht die App alle lokalen Änderungen mit `synced: false` per REST-Batch-Request an das Backend.
+
+* **Konfliktlösung:** Es gilt das Prinzip **"First-Write-Wins"** basierend auf dem Client-Zeitstempel. Der Rest der danach kommt bekommt Benachrichtigung dasses z.B. schon jemand vor dir abgehakt hat
