@@ -18,7 +18,7 @@ Eine Progressive Web App (PWA) für gemeinsame Einkaufslisten mit Offline-First-
 | KU | Kural | Product Owner (PO) |
 | DR | Dragne | Technical Architect (TA) |
 | GU | Gunna | Entwickler (Ameise 1) |
-| GL | Glatzl | Entwickler (Ameise 2) |
+| GL | Glatzel | Entwickler (Ameise 2) |
 | SA | Sarana | Entwickler (Ameise 3) |
 
 ## Arbeitsweise
