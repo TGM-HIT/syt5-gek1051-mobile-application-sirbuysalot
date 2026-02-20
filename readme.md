@@ -2,7 +2,13 @@
 
 ## Projektübersicht
 
-Eine Progressive Web App (PWA) für gemeinsame Einkaufslisten mit Offline-First-Architektur und Echtzeit-Synchronisation.
+Das Projekt ist eine Progressive Web App (PWA) für gemeinsame Einkaufslisten. Mehrere Personen können gleichzeitig dieselbe Liste bearbeiten, Produkte hinzufügen, abhaken und mit Tags organisieren. Über einen generierten Einladungslink können andere einfach der Liste beitreten und einen Anzeigenamen wählen, ohne sich registrieren zu müssen. So sieht jeder, wer was wann markiert hat, und Doppelkäufe können vermieden werden. Produkte können außerdem per Soft Delete ausgeblendet und bei Bedarf wiederhergestellt werden, sodass keine Daten verloren gehen.
+
+Die App setzt auf eine **Offline-First-Architektur**: Änderungen werden primär lokal in IndexedDB (via Dexie.js) gespeichert und bei Verbindung automatisch per Batch-Request mit dem Backend synchronisiert. Versionskonflikte werden serverseitig erkannt und aufgelöst. Für Echtzeit-Updates zwischen Clients sorgen WebSockets, Statusänderungen wie das Abhaken eines Produkts landen so sofort bei allen anderen Teilnehmern.
+
+**Tech-Stack:** [Techstack](./techstack.md)
+
+---
 
 ## Legende
 
