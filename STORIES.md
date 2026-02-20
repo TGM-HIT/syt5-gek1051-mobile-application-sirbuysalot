@@ -34,7 +34,7 @@ Eine Progressive Web App (PWA) für gemeinsame Einkaufslisten mit Offline-First-
 
 | ID  | Description | SP | HEAD | Prio | Status |
 | --- | ----------- |:--:|:----:|:----:|:------:|
-| 1   | Als Benutzer möchte ich eine neue Einkaufsliste mit einem Namen erstellen können, damit ich meine Einkäufe organisieren kann. | 3 | | MH | |
+| 1   | Als Benutzer möchte ich eine neue Einkaufsliste mit einem Namen erstellen können, damit ich meine Einkäufe organisieren kann. | 3 | | MH |https://github.com/TGM-HIT/syt5-gek1051-mobile-application-sirbuysalot/issues/10 |
 | 2   | Als Benutzer möchte ich den Namen einer Einkaufsliste bearbeiten können, damit ich sie bei Bedarf umbenennen kann. | 3 | | MH | |
 | 3   | Als Benutzer möchte ich einen Zugangscode (URL) für meine Einkaufsliste generieren und teilen können, damit andere Personen der Liste beitreten und einen Anzeigenamen wählen können. | 5 | | MH | |
 | 4   | Als Benutzer möchte ich ein Produkt (Name erforderlich, Preis optional) zu einer Einkaufsliste hinzufügen können, damit ich weiß, was gekauft werden muss. | 3 | | MH | |
