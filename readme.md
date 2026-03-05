@@ -24,7 +24,7 @@ Die App setzt auf eine **Offline-First-Architektur**: Änderungen werden primär
 | KU | Kural | Product Owner (PO) |
 | DR | Dragne | Technical Architect (TA) |
 | GU | Gunna | Entwickler (Ameise 1) |
-| GL | Glatzl | Entwickler (Ameise 2) |
+| GL | Glatzel | Entwickler (Ameise 2) |
 | SA | Sarana | Entwickler (Ameise 3) |
 
 ## Arbeitsweise
