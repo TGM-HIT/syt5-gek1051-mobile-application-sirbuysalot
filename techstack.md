@@ -229,18 +229,23 @@ Wir nutzen einen **Reactivity-First-Ansatz** mit WebSockets für Echtzeit-Update
 
 **Ablauf der Synchronisation:**
 
-* **Online-Modus:**  Änderungen (z.B. Produkt abhaken) werden per an den Server gesendet.
+* **Online-Modus:** Änderungen (z. B. Produkt abhaken) werden zusammen mit der zuletzt bekannten Versionsnummer an den Server gesendet.
 
-* Der Server verteilt die Änderung an alle anderen verbundenen Clients der Liste.
+* Der Server prüft die Version der Änderung und verteilt die bestätigten Updates über WebSockets an alle anderen verbundenen Clients der Liste.
 
 * **Offline-Modus:**
-
-* Die PWA erkennt den Verbindungsverlust via `navigator.onLine`.
-
-* Änderungen werden mit einem Flag `synced: false` und einem `timestamp` in **Dexie.js** markiert.
+  
+  * Die PWA erkennt den Verbindungsverlust via `navigator.onLine`.
+  
+  * Änderungen werden lokal in **Dexie.js** gespeichert und mit einem Flag `synced: false` sowie der aktuellen Client-Version markiert.
 
 * **Re-Synchronisation (Back Online):**
+  
+  * Sobald die Verbindung wiederhergestellt ist, pusht die App alle lokalen Änderungen mit `synced: false` per REST-Batch-Request an das Backend.
+  
+  * Der Server prüft die Versionsnummern jeder Änderung:
+    
+    * Stimmen die Versionen überein, wird die Änderung übernommen und die Versionsnummer inkrementiert.
+    * Stimmen die Versionen nicht überein, wird das Update abgelehnt (HTTP 409) und der Client erhält den aktuellen Serverzustand.
 
-* Sobald die Verbindung wiederhergestellt ist, pusht die App alle lokalen Änderungen mit `synced: false` per REST-Batch-Request an das Backend.
-
-* **Konfliktlösung:** Es gilt das Prinzip **"First-Write-Wins"** basierend auf dem Client-Zeitstempel. Der Rest der danach kommt bekommt Benachrichtigung dasses z.B. schon jemand vor dir abgehakt hat
+* **Konfliktlösung:** Alle konkurrierenden Änderungen werden serverseitig erkannt. Der Client entscheidet nach Erhalt des aktuellen Serverzustands, wie er weiter vorgeht (z. B. Neu-Laden oder erneutes Anwenden der Änderung).
