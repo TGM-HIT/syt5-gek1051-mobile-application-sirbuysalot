@@ -48,16 +48,16 @@ Eine Progressive Web App (PWA) für gemeinsame Einkaufslisten mit Offline-First-
 | 12  | Als Benutzer möchte ich alle Änderungen offline vornehmen können, wobei diese lokal mit Zeitstempel gespeichert werden, damit ich auch ohne Internet arbeiten kann. | 8 | | MH |https://github.com/TGM-HIT/syt5-gek1051-mobile-application-sirbuysalot/issues/16 |
 | 13  | Als Benutzer möchte ich, dass meine offline gemachten Änderungen automatisch mit dem Server synchronisiert werden, sobald ich wieder online bin. | 8 | | MH |https://github.com/TGM-HIT/syt5-gek1051-mobile-application-sirbuysalot/issues/22 |
 | 14  | Als Benutzer möchte ich bei Sync-Konflikten (z.B. gleichzeitige Änderungen) informiert werden und die aktuellste Version sehen, damit keine Daten verloren gehen. | 5 | | MH |https://github.com/TGM-HIT/syt5-gek1051-mobile-application-sirbuysalot/issues/18 |
-| 15  | Als Benutzer möchte ich eine Einkaufsliste ausblenden können (soft delete), wenn ich sie nicht mehr benötige. | 3 | | SH | |
-| 16  | Als Benutzer möchte ich ausgeblendete Einkaufslisten wiederherstellen können, damit versehentlich entfernte Listen nicht verloren gehen. | 3 | | SH | |
-| 17  | Als Benutzer möchte ich über eine öffentliche URL auf die App zugreifen können (Deployment), damit ich sie von überall nutzen kann. | 8 | | SH | |
-| 18  | Als Benutzer möchte ich einen Darkmode aktivieren können, um meine Augen zu schonen. | 5 | | SH | |
-| 19  | Als Benutzer möchte ich, dass die Synchronisation auch über P2P funktioniert (z.B. BitChat), damit die App dezentral nutzbar ist. | 13 | | N2H | |
-| 20  | Als Benutzer möchte ich Tags verwalten können (erstellen, bearbeiten, löschen), damit ich meine Kategorien anpassen kann. | 5 | | N2H | |
-| 21  | Als Benutzer möchte ich Produkte nach Tags filtern können, damit ich nur bestimmte Kategorien sehe. | 5 | | N2H | |
-| 22  | Als Benutzer möchte ich die Gesamtkosten aller Produkte in einer Liste sehen können, damit ich mein Budget im Blick habe. | 3 | | N2H | |
-| 23  | Als Benutzer möchte ich Produkte innerhalb der Liste per Drag & Drop sortieren können, damit ich die Reihenfolge anpassen kann. | 5 | | N2H | |
-| 24  | Als Benutzer möchte ich eine Einkaufsliste duplizieren können, damit ich wiederkehrende Einkäufe schnell neu anlegen kann. | 8 | | N2H | |
+| 15  | Als Benutzer möchte ich eine Einkaufsliste ausblenden können (soft delete), wenn ich sie nicht mehr benötige. | 3 | | SH | [#23](https://github.com/TGM-HIT/syt5-gek1051-mobile-application-sirbuysalot/issues/23) |
+| 16  | Als Benutzer möchte ich ausgeblendete Einkaufslisten wiederherstellen können, damit versehentlich entfernte Listen nicht verloren gehen. | 3 | | SH | [#24](https://github.com/TGM-HIT/syt5-gek1051-mobile-application-sirbuysalot/issues/24) |
+| 17  | Als Benutzer möchte ich über eine öffentliche URL auf die App zugreifen können (Deployment), damit ich sie von überall nutzen kann. | 8 | | SH | [#25](https://github.com/TGM-HIT/syt5-gek1051-mobile-application-sirbuysalot/issues/25) |
+| 18  | Als Benutzer möchte ich einen Darkmode aktivieren können, um meine Augen zu schonen. | 5 | | SH | [#26](https://github.com/TGM-HIT/syt5-gek1051-mobile-application-sirbuysalot/issues/26) |
+| 19  | Als Benutzer möchte ich, dass die Synchronisation auch über P2P funktioniert (z.B. BitChat), damit die App dezentral nutzbar ist. | 13 | | N2H | [#27](https://github.com/TGM-HIT/syt5-gek1051-mobile-application-sirbuysalot/issues/27) |
+| 20  | Als Benutzer möchte ich Tags verwalten können (erstellen, bearbeiten, löschen), damit ich meine Kategorien anpassen kann. | 5 | | N2H | [#28](https://github.com/TGM-HIT/syt5-gek1051-mobile-application-sirbuysalot/issues/28) |
+| 21  | Als Benutzer möchte ich Produkte nach Tags filtern können, damit ich nur bestimmte Kategorien sehe. | 5 | | N2H | [#29](https://github.com/TGM-HIT/syt5-gek1051-mobile-application-sirbuysalot/issues/29) |
+| 22  | Als Benutzer möchte ich die Gesamtkosten aller Produkte in einer Liste sehen können, damit ich mein Budget im Blick habe. | 3 | | N2H | [#30](https://github.com/TGM-HIT/syt5-gek1051-mobile-application-sirbuysalot/issues/30) |
+| 23  | Als Benutzer möchte ich Produkte innerhalb der Liste per Drag & Drop sortieren können, damit ich die Reihenfolge anpassen kann. | 5 | | N2H | [#31](https://github.com/TGM-HIT/syt5-gek1051-mobile-application-sirbuysalot/issues/31) |
+| 24  | Als Benutzer möchte ich eine Einkaufsliste duplizieren können, damit ich wiederkehrende Einkäufe schnell neu anlegen kann. | 8 | | N2H | [#32](https://github.com/TGM-HIT/syt5-gek1051-mobile-application-sirbuysalot/issues/32) |
 
 ---
 
