@@ -34,9 +34,40 @@ Das folgende Diagramm veranschaulicht das Zusammenspiel der Komponenten, die Kom
       +---------+     +---------+                        |  | JSONB      : Item-Metadata  |  |
                                                          |  +-----------------------------+  |
                                                          +-----------------------------------+
-
-
 ```
+
+---
+
+## Aussehen eines Einkaufslisten-Items
+
+Damit die Synchronisation sinnvoll und funktionsfähig ist, soll ein Item der Einkaufsliste folgendermaßen aussehen: 
+
+| **Attribut**       | **Typ**     | **Speicherort**     | **Beschreibung**                                                             |
+| ------------------ | ----------- | ------------------- | ---------------------------------------------------------------------------- |
+| `id`               | UUID        | Lokal & Server      | Eindeutiger Identifikator (vom Client generiert, um Duplikate zu vermeiden). |
+| `listId`           | UUID        | Lokal & Server      | Fremdschlüssel zur zugehörigen Liste.                                        |
+| `name`             | String      | Lokal & Server      | Name des Produkts (z.B. "Milch").                                            |
+| `amount`           | String      | Lokal & Server      | Menge/Einheit (z.B. "2 Packungen").                                          |
+| `isDone`           | Boolean     | Lokal & Server      | Status (abgehakt oder nicht).                                                |
+| **`version`**      | **Integer** | **Server (Master)** | **Zentraler Zähler für Konflikterkennung.**                                  |
+| **`lastModified`** | Timestamp   | Lokal & Server      | Zeitstempel der letzten Änderung.                                            |
+| `synced`           | Boolean     | Nur Lokal           | Flag: `true` = identisch mit Server, `false` = muss noch gepusht werden.     |
+
+Für Tags (Kategorien/Gruppen eines Produkts) wird eine M2M Tabelle benötigt welche die UUID der Kategorie, mit der UUID des Produktes veknüpft wird.
+
+| Attribut    | Typ  | Speicherort    | Beschreibung              |
+| ----------- | ---- | -------------- | ------------------------- |
+| `produktId` | UUID | Lokal & Server | UUID des Produktes        |
+| `tagId`     | UUID | Lokal & Server | UUID der Kategorie/Gruppe |
+
+Dafür wird folgendes Tag gebraucht:
+
+| Attribut | Typ    | Speicherort    | Beschreibung                                 |
+| -------- | ------ | -------------- | -------------------------------------------- |
+| `id`     | UUID   | Lokal & Server | Eindeutiger Identifikator des Tags           |
+| `tag`    | String | Lokal & Server | Der Name der Kategorie (z.B. "Milchprodukt") |
+
+
 
 ---
 
