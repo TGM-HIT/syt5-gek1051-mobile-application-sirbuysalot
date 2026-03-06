@@ -43,23 +43,91 @@ Die App setzt auf eine **Offline-First-Architektur**: Änderungen werden primär
 **Voraussetzungen:**
 - Java 21 LTS
 - Node.js 22 LTS
-- Docker Compose 2.32+
+- Docker Desktop (inkl. Docker Compose)
 
-**Projekt starten:**
+### Setup (einmalig)
+
 ```bash
-# Repository klonen
+# 1. Repository klonen
 git clone https://github.com/TGM-HIT/syt5-gek1051-mobile-application-sirbuysalot.git
+cd syt5-gek1051-mobile-application-sirbuysalot
 
-# Backend + Datenbank starten (Docker Compose)
+# 2. Environment-Datei anlegen
+cp .env.example .env
+
+# 3. PostgreSQL Datenbank starten
 docker compose up -d
 
-# Frontend starten
+# 4. Frontend Dependencies installieren
 cd frontend
 npm install
-npm run dev
 ```
 
-**Prompts:** Nützliche KI-Prompts für die Entwicklung sind im [Promptverzeichnis](promptverzeichnis/prompt.md) zu finden.
+### Projekt starten
+
+```bash
+# Terminal 1: Backend starten (aus Projektroot)
+cd backend
+./mvnw spring-boot:run        # Linux/Mac
+mvnw.cmd spring-boot:run      # Windows
+
+# Terminal 2: Frontend starten (aus Projektroot)
+cd frontend
+npm run dev                    # -> http://localhost:5173
+```
+
+**Oder in IntelliJ:**
+1. `backend/` Ordner als Maven-Projekt oeffnen
+2. `SirBuysALotApplication.java` ausfuehren (Run)
+3. Frontend separat im Terminal starten
+
+### Was passiert beim ersten Start?
+
+1. **Docker Compose** startet PostgreSQL 16 auf Port `5432`
+2. **Spring Boot** verbindet sich zur DB und erstellt automatisch alle Tabellen (via Hibernate `ddl-auto=update`)
+3. **Seed-Daten** (`data.sql`) werden geladen: 3 Einkaufslisten, Produkte, Tags, Benutzer
+4. **Frontend** laeuft auf `http://localhost:5173` und verbindet sich zum Backend auf `http://localhost:8080`
+
+### Projektstruktur
+
+```
+├── docker-compose.yml          # PostgreSQL 16 Container
+├── .env / .env.example         # DB-Credentials (nicht committen!)
+├── frontend/                   # Vue 3 + Vuetify 3 + Vite PWA
+│   ├── src/
+│   │   ├── views/              # Seiten (Home, Liste)
+│   │   ├── components/         # Wiederverwendbare Komponenten
+│   │   ├── db/index.ts         # Dexie.js (IndexedDB) Setup
+│   │   ├── services/api.ts     # Axios REST Client
+│   │   ├── router/             # Vue Router
+│   │   └── plugins/vuetify.ts  # Vuetify Theme + Config
+│   └── package.json
+├── backend/                    # Spring Boot 3.2 + Java 21
+│   ├── src/main/java/at/tgm/sirbuysalot/
+│   │   ├── model/              # JPA Entities (ShoppingList, Product, Tag, AppUser)
+│   │   ├── repository/         # Spring Data JPA Repositories
+│   │   ├── service/            # Business Logic
+│   │   ├── controller/         # REST Endpoints (/api/lists, /api/lists/{id}/products)
+│   │   └── config/             # CORS + WebSocket/STOMP
+│   ├── src/main/resources/
+│   │   ├── application.properties
+│   │   └── data.sql            # Seed-Daten (Testdaten)
+│   └── pom.xml
+```
+
+### Feature entwickeln
+
+```bash
+# Neuen Branch erstellen
+git checkout -b feature/US-XX-beschreibung
+
+# ... entwickeln, testen ...
+
+# Pushen und PR erstellen
+git push -u origin feature/US-XX-beschreibung
+```
+
+**Prompts:** Nuetzliche KI-Prompts fuer die Entwicklung sind im [Promptverzeichnis](promptverzeichnis/prompt.md) zu finden.
 
 ---
 
