@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from '@/views/HomeView.vue'
 import ListView from '@/views/ListView.vue'
+import JoinView from '@/views/JoinView.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -14,6 +15,11 @@ const router = createRouter({
       path: '/list/:id',
       name: 'list',
       component: ListView,
+    },
+    {
+      path: '/join/:code',
+      name: 'join',
+      component: JoinView,
     },
   ],
 })
