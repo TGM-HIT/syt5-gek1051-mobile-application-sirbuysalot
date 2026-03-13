@@ -2,6 +2,7 @@ package at.tgm.sirbuysalot.controller;
 
 import at.tgm.sirbuysalot.model.ShoppingList;
 import at.tgm.sirbuysalot.service.ShoppingListService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -29,7 +30,7 @@ public class ShoppingListController {
     }
 
     @PostMapping
-    public ResponseEntity<ShoppingList> create(@RequestBody ShoppingList list) {
+    public ResponseEntity<ShoppingList> create(@Valid @RequestBody ShoppingList list) {
         return ResponseEntity.ok(service.create(list));
     }
 

@@ -1,6 +1,7 @@
 package at.tgm.sirbuysalot.model;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
 import lombok.*;
 
 import java.time.LocalDateTime;
@@ -20,6 +21,7 @@ public class ShoppingList {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
+    @NotBlank(message = "Name darf nicht leer sein")
     @Column(nullable = false)
     private String name;
 
