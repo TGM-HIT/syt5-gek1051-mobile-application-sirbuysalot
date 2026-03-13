@@ -33,8 +33,11 @@ public class ProductController {
     }
 
     @PatchMapping("/{id}/purchase")
-    public ResponseEntity<Product> togglePurchase(@PathVariable UUID id, @RequestBody Map<String, String> body) {
-        return ResponseEntity.ok(service.markPurchased(id, body.get("purchasedBy")));
+    public ResponseEntity<Product> togglePurchase(
+            @PathVariable UUID listId,
+            @PathVariable UUID id,
+            @RequestBody Map<String, String> body) {
+        return ResponseEntity.ok(service.markPurchased(id, listId, body.get("purchasedBy")));
     }
 
     @DeleteMapping("/{id}")
