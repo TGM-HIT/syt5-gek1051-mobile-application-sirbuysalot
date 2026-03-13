@@ -95,10 +95,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, provide, reactive } from 'vue'
+import { ref, computed, onMounted, onUnmounted, provide, reactive } from 'vue'
 import { useUser } from '@/composables/useUser'
+import { useShoppingLists } from '@/composables/useShoppingLists'
 
 const { displayName, isLoggedIn, setDisplayName } = useUser()
+const { syncPendingLists } = useShoppingLists()
 
 const showNameDialog = ref(false)
 const nameInput = ref('')
@@ -130,6 +132,11 @@ onMounted(() => {
   } else {
     nameInput.value = displayName()
   }
+  window.addEventListener('online', syncPendingLists)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('online', syncPendingLists)
 })
 
 function saveName() {
