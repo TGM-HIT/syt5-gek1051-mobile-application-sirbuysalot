@@ -113,7 +113,7 @@ jobs:
           cache: maven
 
       - name: Build & run tests
-        run: ./mvnw -B verify -Dspring.profiles.active=test
+        run: chmod +x ./mvnw && ./mvnw -B verify -Dspring.profiles.active=test
 
   # ──────────────────────────── Gate ────────────────────────────────
   ci-pass:
