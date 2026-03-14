@@ -44,6 +44,13 @@
                 </div>
               </div>
 
+              <v-btn
+                icon="mdi-pencil"
+                variant="text"
+                size="small"
+                color="grey"
+                @click.prevent="openEditDialog(list)"
+              />
               <v-icon icon="mdi-chevron-right" color="grey" />
             </div>
           </v-card>
@@ -110,6 +117,40 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
+
+    <!-- Edit dialog -->
+    <v-dialog v-model="showEdit" max-width="440">
+      <v-card class="pa-2">
+        <v-card-title class="text-h5 font-weight-bold pt-4 px-6">
+          <v-icon icon="mdi-pencil" color="primary" class="mr-2" />
+          Liste umbenennen
+        </v-card-title>
+        <v-card-text class="px-6">
+          <v-text-field
+            v-model="editListName"
+            label="Neuer Name"
+            prepend-inner-icon="mdi-format-list-bulleted"
+            autofocus
+            hide-details="auto"
+            :rules="[v => !!v.trim() || 'Name darf nicht leer sein']"
+            @keyup.enter="onUpdateList"
+          />
+        </v-card-text>
+        <v-card-actions class="px-6 pb-4">
+          <v-spacer />
+          <v-btn variant="text" @click="showEdit = false">Abbrechen</v-btn>
+          <v-btn
+            color="primary"
+            :disabled="!editListName.trim()"
+            :loading="updating"
+            prepend-icon="mdi-check"
+            @click="onUpdateList"
+          >
+            Speichern
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </v-container>
 </template>
 
@@ -117,14 +158,20 @@
 import { ref, inject, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useShoppingLists } from '@/composables/useShoppingLists'
+import type { ShoppingList } from '@/types'
 
 const router = useRouter()
 const showSnackbar = inject<(text: string, color?: string, icon?: string) => void>('showSnackbar')!
-const { lists, loading, error, fetchLists, createList } = useShoppingLists()
+const { lists, loading, error, fetchLists, createList, updateList } = useShoppingLists()
 
 const showCreate = ref(false)
 const newListName = ref('')
 const creating = ref(false)
+
+const showEdit = ref(false)
+const editListName = ref('')
+const editListId = ref('')
+const updating = ref(false)
 
 onMounted(() => {
   fetchLists()
@@ -144,6 +191,27 @@ async function onCreateList() {
     error.value = 'Fehler beim Erstellen der Liste'
   } finally {
     creating.value = false
+  }
+}
+
+function openEditDialog(list: ShoppingList) {
+  editListId.value = list.id
+  editListName.value = list.name
+  showEdit.value = true
+}
+
+async function onUpdateList() {
+  const name = editListName.value.trim()
+  if (!name) return
+  updating.value = true
+  try {
+    await updateList(editListId.value, { name })
+    showEdit.value = false
+    showSnackbar(`Liste umbenannt zu "${name}"`)
+  } catch {
+    error.value = 'Fehler beim Umbenennen'
+  } finally {
+    updating.value = false
   }
 }
 </script>
