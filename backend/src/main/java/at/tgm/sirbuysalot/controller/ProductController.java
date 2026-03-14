@@ -2,6 +2,7 @@ package at.tgm.sirbuysalot.controller;
 
 import at.tgm.sirbuysalot.model.Product;
 import at.tgm.sirbuysalot.service.ProductService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -23,7 +24,7 @@ public class ProductController {
     }
 
     @PostMapping
-    public ResponseEntity<Product> create(@PathVariable UUID listId, @RequestBody Product product) {
+    public ResponseEntity<Product> create(@PathVariable UUID listId, @Valid @RequestBody Product product) {
         return ResponseEntity.ok(service.create(listId, product));
     }
 
