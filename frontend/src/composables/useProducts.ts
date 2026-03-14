@@ -42,10 +42,16 @@ export function useProducts(listId: string) {
   }
 
   async function togglePurchase(productId: string, purchasedBy: string) {
-    const updated = await productService.togglePurchase(listId, productId, purchasedBy)
-    const idx = products.value.findIndex((p) => p.id === productId)
-    if (idx !== -1) products.value[idx] = updated
-    return updated
+    error.value = null
+    try {
+      const updated = await productService.togglePurchase(listId, productId, purchasedBy)
+      const idx = products.value.findIndex((p) => p.id === productId)
+      if (idx !== -1) products.value[idx] = updated
+      return updated
+    } catch (e: any) {
+      error.value = e.message ?? 'Fehler beim Umschalten des Kaufstatus'
+      throw e
+    }
   }
 
   async function removeProduct(productId: string) {
