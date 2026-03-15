@@ -48,7 +48,7 @@
         <!-- Product list -->
         <transition-group name="product" tag="div">
           <v-card
-            v-for="product in products"
+            v-for="product in sortedProducts"
             :key="product.id"
             class="mb-3 product-card"
             :class="{ 'product-purchased': product.purchased }"
@@ -104,6 +104,16 @@
               >
                 {{ formatPrice(product.price) }}
               </v-chip>
+
+              <!-- Edit button -->
+              <v-btn
+                icon="mdi-pencil"
+                variant="text"
+                size="x-small"
+                color="grey"
+                class="ml-1"
+                @click.stop="openEditDialog(product)"
+              />
             </div>
           </v-card>
         </transition-group>
@@ -179,6 +189,14 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
+
+    <!-- Edit product dialog -->
+    <ProductEditDialog
+      v-model="showEdit"
+      :product="editProduct"
+      :saving="editSaving"
+      @save="onSaveEdit"
+    />
   </v-container>
 </template>
 
@@ -188,6 +206,7 @@ import { useRoute } from 'vue-router'
 import { useProducts } from '@/composables/useProducts'
 import { useUser } from '@/composables/useUser'
 import { listService } from '@/services/listService'
+import ProductEditDialog from '@/components/ProductEditDialog.vue'
 import type { Product } from '@/types'
 
 const route = useRoute()
@@ -195,7 +214,7 @@ const listId = route.params.id as string
 const { displayName } = useUser()
 const showSnackbar = inject<(text: string, color?: string, icon?: string) => void>('showSnackbar')!
 
-const { products, loading, error, fetchProducts, addProduct, togglePurchase } = useProducts(listId)
+const { products, loading, error, fetchProducts, addProduct, updateProduct, togglePurchase } = useProducts(listId)
 
 const listName = ref('...')
 const showAdd = ref(false)
@@ -203,11 +222,23 @@ const newProductName = ref('')
 const newProductPrice = ref<number | undefined>(undefined)
 const adding = ref(false)
 
+const showEdit = ref(false)
+const editProduct = ref<Product | null>(null)
+const editSaving = ref(false)
+
 const activeProducts = computed(() => products.value.filter((p) => !p.purchased))
 const purchasedCount = computed(() => products.value.filter((p) => p.purchased).length)
 const progressPercent = computed(() => {
   if (products.value.length === 0) return 0
   return Math.round((purchasedCount.value / products.value.length) * 100)
+})
+
+const sortedProducts = computed(() => {
+  return [...products.value].sort((a, b) => {
+    if (a.purchased && !b.purchased) return 1
+    if (!a.purchased && b.purchased) return -1
+    return 0
+  })
 })
 
 onMounted(async () => {
@@ -245,6 +276,25 @@ async function onTogglePurchase(product: Product) {
     await togglePurchase(product.id, displayName())
   } catch {
     error.value = 'Fehler beim Markieren'
+  }
+}
+
+function openEditDialog(product: Product) {
+  editProduct.value = product
+  showEdit.value = true
+}
+
+async function onSaveEdit(payload: { name: string; price: number | null }) {
+  if (!editProduct.value) return
+  editSaving.value = true
+  try {
+    await updateProduct(editProduct.value.id, payload)
+    showEdit.value = false
+    showSnackbar('Produkt aktualisiert')
+  } catch {
+    error.value = 'Fehler beim Speichern'
+  } finally {
+    editSaving.value = false
   }
 }
 
