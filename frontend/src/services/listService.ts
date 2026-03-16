@@ -25,4 +25,9 @@ export const listService = {
   async remove(id: string): Promise<void> {
     await api.delete(`/lists/${id}`)
   },
+
+  async joinByCode(code: string): Promise<ShoppingList> {
+    const { data } = await api.get<ShoppingList>(`/lists/join/${code}`)
+    return data
+  },
 }
