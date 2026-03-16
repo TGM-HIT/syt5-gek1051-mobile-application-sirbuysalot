@@ -200,9 +200,11 @@
                 <div
                   v-if="product.purchased && product.purchasedBy"
                   class="text-caption text-medium-emphasis mt-1 d-flex align-center"
+                  :title="`Gekauft von ${product.purchasedBy}`"
                 >
-                  <v-icon icon="mdi-check-circle" size="12" color="success" class="mr-1" />
-                  {{ product.purchasedBy }} · {{ formatTime(product.purchasedAt) }}
+                  <v-icon icon="mdi-account-check" size="12" color="success" class="mr-1" />
+                  {{ product.purchasedBy }}
+                  <span v-if="product.purchasedAt" class="ml-1">· {{ formatTime(product.purchasedAt) }}</span>
                 </div>
               </div>
 
