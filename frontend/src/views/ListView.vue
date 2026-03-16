@@ -20,7 +20,47 @@
               </span>
             </div>
           </div>
+          <v-btn
+            icon="mdi-share-variant"
+            variant="tonal"
+            size="small"
+            color="primary"
+            @click="showShareDialog = true"
+          />
         </div>
+
+        <!-- Share dialog -->
+        <v-dialog v-model="showShareDialog" max-width="440">
+          <v-card class="pa-4">
+            <v-card-title class="text-h6 font-weight-bold">
+              <v-icon icon="mdi-share-variant" color="primary" class="mr-2" />
+              Liste teilen
+            </v-card-title>
+            <v-card-text>
+              <p class="text-body-2 text-medium-emphasis mb-3">
+                Teile diesen Link, damit andere der Liste beitreten koennen:
+              </p>
+              <v-text-field
+                :model-value="shareUrl"
+                readonly
+                prepend-inner-icon="mdi-link"
+                hide-details
+                @click="copyShareUrl"
+              >
+                <template #append-inner>
+                  <v-btn icon="mdi-content-copy" variant="text" size="small" @click="copyShareUrl" />
+                </template>
+              </v-text-field>
+              <div class="text-caption text-medium-emphasis mt-2">
+                Zugangscode: <strong>{{ accessCode }}</strong>
+              </div>
+            </v-card-text>
+            <v-card-actions>
+              <v-spacer />
+              <v-btn variant="text" @click="showShareDialog = false">Schliessen</v-btn>
+            </v-card-actions>
+          </v-card>
+        </v-dialog>
 
         <!-- Progress -->
         <v-card v-if="products.length > 0" class="mb-5 pa-4" border>
@@ -217,6 +257,8 @@ const showSnackbar = inject<(text: string, color?: string, icon?: string) => voi
 const { products, loading, error, fetchProducts, addProduct, updateProduct, togglePurchase } = useProducts(listId)
 
 const listName = ref('...')
+const accessCode = ref('')
+const showShareDialog = ref(false)
 const showAdd = ref(false)
 const newProductName = ref('')
 const newProductPrice = ref<number | undefined>(undefined)
@@ -241,15 +283,25 @@ const sortedProducts = computed(() => {
   })
 })
 
+const shareUrl = computed(() => {
+  return `${window.location.origin}/join/${accessCode.value}`
+})
+
 onMounted(async () => {
   try {
     const list = await listService.getById(listId)
     listName.value = list.name
+    accessCode.value = list.accessCode ?? ''
   } catch {
     listName.value = 'Unbekannte Liste'
   }
   fetchProducts()
 })
+
+function copyShareUrl() {
+  navigator.clipboard.writeText(shareUrl.value)
+  showSnackbar('Link kopiert!', 'info', 'mdi-content-copy')
+}
 
 async function onAddProduct() {
   const name = newProductName.value.trim()
