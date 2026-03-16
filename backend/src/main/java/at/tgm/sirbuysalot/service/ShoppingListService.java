@@ -38,6 +38,11 @@ public class ShoppingListService {
         return repository.save(list);
     }
 
+    public Optional<ShoppingList> findByAccessCode(String accessCode) {
+        return repository.findByAccessCode(accessCode)
+                .filter(list -> list.getDeletedAt() == null);
+    }
+
     public void softDelete(UUID id) {
         ShoppingList list = repository.findById(id)
                 .orElseThrow(() -> new RuntimeException("List not found"));
