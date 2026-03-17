@@ -39,6 +39,13 @@ public class ShoppingListController {
         return ResponseEntity.ok(service.update(id, list));
     }
 
+    @GetMapping("/join/{accessCode}")
+    public ResponseEntity<ShoppingList> joinByCode(@PathVariable String accessCode) {
+        return service.findByAccessCode(accessCode)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         service.softDelete(id);
