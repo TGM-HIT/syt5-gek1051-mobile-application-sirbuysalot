@@ -38,6 +38,16 @@ public class ProductController {
         return ResponseEntity.ok(service.markPurchased(id, body.get("purchasedBy")));
     }
 
+    @GetMapping("/deleted")
+    public ResponseEntity<List<Product>> getDeleted(@PathVariable UUID listId) {
+        return ResponseEntity.ok(service.findDeletedByListId(listId));
+    }
+
+    @PatchMapping("/{id}/restore")
+    public ResponseEntity<Product> restore(@PathVariable UUID id) {
+        return ResponseEntity.ok(service.restore(id));
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         service.softDelete(id);
