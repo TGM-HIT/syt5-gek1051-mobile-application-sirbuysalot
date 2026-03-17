@@ -154,6 +154,16 @@
                 class="ml-1"
                 @click.stop="openEditDialog(product)"
               />
+
+              <!-- Delete button -->
+              <v-btn
+                icon="mdi-delete-outline"
+                variant="text"
+                size="x-small"
+                color="error"
+                class="ml-1"
+                @click.stop="confirmDelete(product)"
+              />
             </div>
           </v-card>
         </transition-group>
@@ -237,6 +247,21 @@
       :saving="editSaving"
       @save="onSaveEdit"
     />
+
+    <!-- Delete confirmation -->
+    <v-dialog v-model="showDeleteConfirm" max-width="360">
+      <v-card class="pa-4">
+        <v-card-title class="text-h6">Produkt ausblenden?</v-card-title>
+        <v-card-text>
+          "{{ deleteTarget?.name }}" wird ausgeblendet. Du kannst es spaeter wiederherstellen.
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn variant="text" @click="showDeleteConfirm = false">Abbrechen</v-btn>
+          <v-btn color="error" @click="onDeleteProduct">Ausblenden</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </v-container>
 </template>
 
@@ -254,7 +279,7 @@ const listId = route.params.id as string
 const { displayName } = useUser()
 const showSnackbar = inject<(text: string, color?: string, icon?: string) => void>('showSnackbar')!
 
-const { products, loading, error, fetchProducts, addProduct, updateProduct, togglePurchase } = useProducts(listId)
+const { products, loading, error, fetchProducts, addProduct, updateProduct, togglePurchase, removeProduct } = useProducts(listId)
 
 const listName = ref('...')
 const accessCode = ref('')
@@ -267,6 +292,8 @@ const adding = ref(false)
 const showEdit = ref(false)
 const editProduct = ref<Product | null>(null)
 const editSaving = ref(false)
+const showDeleteConfirm = ref(false)
+const deleteTarget = ref<Product | null>(null)
 
 const activeProducts = computed(() => products.value.filter((p) => !p.purchased))
 const purchasedCount = computed(() => products.value.filter((p) => p.purchased).length)
@@ -347,6 +374,22 @@ async function onSaveEdit(payload: { name: string; price: number | null }) {
     error.value = 'Fehler beim Speichern'
   } finally {
     editSaving.value = false
+  }
+}
+
+function confirmDelete(product: Product) {
+  deleteTarget.value = product
+  showDeleteConfirm.value = true
+}
+
+async function onDeleteProduct() {
+  if (!deleteTarget.value) return
+  try {
+    await removeProduct(deleteTarget.value.id)
+    showDeleteConfirm.value = false
+    showSnackbar(`"${deleteTarget.value.name}" ausgeblendet`)
+  } catch {
+    error.value = 'Fehler beim Ausblenden'
   }
 }
 
