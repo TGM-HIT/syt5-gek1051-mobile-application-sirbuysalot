@@ -4,6 +4,7 @@ import type { Product, CreateProductPayload, UpdateProductPayload } from '@/type
 
 export function useProducts(listId: string) {
   const products = ref<Product[]>([])
+  const deletedProducts = ref<Product[]>([])
   const loading = ref(false)
   const error = ref<string | null>(null)
 
@@ -16,6 +17,14 @@ export function useProducts(listId: string) {
       error.value = e.message ?? 'Fehler beim Laden der Produkte'
     } finally {
       loading.value = false
+    }
+  }
+
+  async function fetchDeletedProducts() {
+    try {
+      deletedProducts.value = await productService.getDeleted(listId)
+    } catch (e: any) {
+      error.value = e.message ?? 'Fehler beim Laden der geloeschten Produkte'
     }
   }
 
@@ -44,14 +53,24 @@ export function useProducts(listId: string) {
     products.value = products.value.filter((p) => p.id !== productId)
   }
 
+  async function restoreProduct(productId: string) {
+    const restored = await productService.restore(listId, productId)
+    products.value.push(restored)
+    deletedProducts.value = deletedProducts.value.filter((p) => p.id !== productId)
+    return restored
+  }
+
   return {
     products,
+    deletedProducts,
     loading,
     error,
     fetchProducts,
+    fetchDeletedProducts,
     addProduct,
     updateProduct,
     togglePurchase,
     removeProduct,
+    restoreProduct,
   }
 }
