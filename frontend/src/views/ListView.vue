@@ -168,6 +168,51 @@
           </v-card>
         </transition-group>
 
+        <!-- Deleted products toggle -->
+        <div class="d-flex align-center mb-3 mt-4">
+          <v-switch
+            v-model="showDeleted"
+            label="Ausgeblendete anzeigen"
+            color="warning"
+            density="compact"
+            hide-details
+            @update:model-value="onToggleDeleted"
+          />
+        </div>
+
+        <!-- Deleted products -->
+        <template v-if="showDeleted">
+          <v-card
+            v-for="product in deletedProducts"
+            :key="'del-' + product.id"
+            class="mb-3"
+            border
+            variant="outlined"
+            color="warning"
+          >
+            <div class="d-flex align-center pa-4">
+              <v-icon icon="mdi-delete-clock" color="warning" class="mr-3" />
+              <div class="flex-grow-1">
+                <div class="text-subtitle-1 text-decoration-line-through text-medium-emphasis">
+                  {{ product.name }}
+                </div>
+              </div>
+              <v-btn
+                variant="tonal"
+                color="success"
+                size="small"
+                prepend-icon="mdi-restore"
+                @click="onRestoreProduct(product)"
+              >
+                Wiederherstellen
+              </v-btn>
+            </div>
+          </v-card>
+          <div v-if="deletedProducts.length === 0" class="text-body-2 text-medium-emphasis text-center mb-4">
+            Keine ausgeblendeten Produkte
+          </div>
+        </template>
+
         <!-- Empty state -->
         <v-card v-if="!loading && products.length === 0" class="pa-8 text-center" border>
           <v-icon icon="mdi-cart-outline" size="80" color="grey-lighten-1" class="mb-4" />
@@ -279,7 +324,7 @@ const listId = route.params.id as string
 const { displayName } = useUser()
 const showSnackbar = inject<(text: string, color?: string, icon?: string) => void>('showSnackbar')!
 
-const { products, loading, error, fetchProducts, addProduct, updateProduct, togglePurchase, removeProduct } = useProducts(listId)
+const { products, deletedProducts, loading, error, fetchProducts, fetchDeletedProducts, addProduct, updateProduct, togglePurchase, removeProduct, restoreProduct } = useProducts(listId)
 
 const listName = ref('...')
 const accessCode = ref('')
@@ -294,6 +339,7 @@ const editProduct = ref<Product | null>(null)
 const editSaving = ref(false)
 const showDeleteConfirm = ref(false)
 const deleteTarget = ref<Product | null>(null)
+const showDeleted = ref(false)
 
 const activeProducts = computed(() => products.value.filter((p) => !p.purchased))
 const purchasedCount = computed(() => products.value.filter((p) => p.purchased).length)
@@ -374,6 +420,19 @@ async function onSaveEdit(payload: { name: string; price: number | null }) {
     error.value = 'Fehler beim Speichern'
   } finally {
     editSaving.value = false
+  }
+}
+
+function onToggleDeleted(val: boolean) {
+  if (val) fetchDeletedProducts()
+}
+
+async function onRestoreProduct(product: Product) {
+  try {
+    await restoreProduct(product.id)
+    showSnackbar(`"${product.name}" wiederhergestellt`)
+  } catch {
+    error.value = 'Fehler beim Wiederherstellen'
   }
 }
 

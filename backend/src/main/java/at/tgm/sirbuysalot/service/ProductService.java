@@ -54,4 +54,16 @@ public class ProductService {
         product.setDeletedAt(LocalDateTime.now());
         productRepository.save(product);
     }
+
+    public List<Product> findDeletedByListId(UUID listId) {
+        return productRepository.findByShoppingListIdAndDeletedAtIsNotNull(listId);
+    }
+
+    public Product restore(UUID id) {
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Product not found"));
+        product.setDeletedAt(null);
+        product.setVersion(product.getVersion() + 1);
+        return productRepository.save(product);
+    }
 }
