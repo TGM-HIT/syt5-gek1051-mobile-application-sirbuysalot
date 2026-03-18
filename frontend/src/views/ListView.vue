@@ -79,6 +79,50 @@
           />
         </v-card>
 
+        <!-- Search bar -->
+        <v-text-field
+          v-model="searchQuery"
+          label="Produkte durchsuchen..."
+          prepend-inner-icon="mdi-magnify"
+          clearable
+          density="compact"
+          hide-details
+          class="mb-3"
+        />
+
+        <!-- Tag filter chips -->
+        <div v-if="allTags.length > 0" class="d-flex flex-wrap ga-2 mb-4">
+          <v-chip
+            v-for="tag in allTags"
+            :key="tag.id"
+            :color="selectedTags.includes(tag.id) ? 'secondary' : 'default'"
+            :variant="selectedTags.includes(tag.id) ? 'flat' : 'outlined'"
+            label
+            size="small"
+            @click="toggleTagFilter(tag.id)"
+          >
+            {{ tag.name }}
+          </v-chip>
+          <v-chip
+            v-if="selectedTags.length > 0"
+            variant="text"
+            size="small"
+            @click="selectedTags = []"
+          >
+            Alle
+          </v-chip>
+          <v-spacer />
+          <v-btn
+            variant="text"
+            size="x-small"
+            color="secondary"
+            prepend-icon="mdi-tag-multiple"
+            @click="showTagManagement = true"
+          >
+            Tags
+          </v-btn>
+        </div>
+
         <v-progress-linear v-if="loading" indeterminate color="primary" rounded class="mb-5" />
 
         <v-alert v-if="error" type="error" variant="tonal" class="mb-5" closable rounded="xl">
@@ -307,6 +351,14 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
+
+    <!-- Tag management dialog -->
+    <TagManagementDialog
+      v-model="showTagManagement"
+      :tags="allTags"
+      @create="onCreateTag"
+      @delete="onDeleteTag"
+    />
   </v-container>
 </template>
 
@@ -317,6 +369,8 @@ import { useProducts } from '@/composables/useProducts'
 import { useUser } from '@/composables/useUser'
 import { listService } from '@/services/listService'
 import ProductEditDialog from '@/components/ProductEditDialog.vue'
+import TagManagementDialog from '@/components/TagManagementDialog.vue'
+import { useTags } from '@/composables/useTags'
 import type { Product } from '@/types'
 
 const route = useRoute()
@@ -325,6 +379,7 @@ const { displayName } = useUser()
 const showSnackbar = inject<(text: string, color?: string, icon?: string) => void>('showSnackbar')!
 
 const { products, deletedProducts, loading, error, fetchProducts, fetchDeletedProducts, addProduct, updateProduct, togglePurchase, removeProduct, restoreProduct } = useProducts(listId)
+const { tags: allTags, fetchTags, createTag, removeTag: deleteTag } = useTags(listId)
 
 const listName = ref('...')
 const accessCode = ref('')
@@ -340,6 +395,9 @@ const editSaving = ref(false)
 const showDeleteConfirm = ref(false)
 const deleteTarget = ref<Product | null>(null)
 const showDeleted = ref(false)
+const searchQuery = ref('')
+const selectedTags = ref<string[]>([])
+const showTagManagement = ref(false)
 
 const activeProducts = computed(() => products.value.filter((p) => !p.purchased))
 const purchasedCount = computed(() => products.value.filter((p) => p.purchased).length)
@@ -348,8 +406,31 @@ const progressPercent = computed(() => {
   return Math.round((purchasedCount.value / products.value.length) * 100)
 })
 
+const filteredProducts = computed(() => {
+  let result = products.value
+
+  // Text search
+  const query = (searchQuery.value ?? '').toLowerCase().trim()
+  if (query) {
+    result = result.filter((p) => {
+      const nameMatch = p.name.toLowerCase().includes(query)
+      const tagMatch = p.tags?.some((t) => t.name.toLowerCase().includes(query))
+      return nameMatch || tagMatch
+    })
+  }
+
+  // Tag filter
+  if (selectedTags.value.length > 0) {
+    result = result.filter((p) =>
+      p.tags?.some((t) => selectedTags.value.includes(t.id))
+    )
+  }
+
+  return result
+})
+
 const sortedProducts = computed(() => {
-  return [...products.value].sort((a, b) => {
+  return [...filteredProducts.value].sort((a, b) => {
     if (a.purchased && !b.purchased) return 1
     if (!a.purchased && b.purchased) return -1
     return 0
@@ -369,7 +450,26 @@ onMounted(async () => {
     listName.value = 'Unbekannte Liste'
   }
   fetchProducts()
+  fetchTags()
 })
+
+function toggleTagFilter(tagId: string) {
+  const idx = selectedTags.value.indexOf(tagId)
+  if (idx >= 0) {
+    selectedTags.value.splice(idx, 1)
+  } else {
+    selectedTags.value.push(tagId)
+  }
+}
+
+async function onCreateTag(name: string) {
+  await createTag(name)
+}
+
+async function onDeleteTag(tagId: string) {
+  await deleteTag(tagId)
+  await fetchProducts() // refresh products to remove deleted tag references
+}
 
 function copyShareUrl() {
   navigator.clipboard.writeText(shareUrl.value)
