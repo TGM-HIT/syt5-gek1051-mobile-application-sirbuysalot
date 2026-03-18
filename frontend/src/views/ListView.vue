@@ -129,9 +129,10 @@
             v-if="selectedTags.length > 0"
             variant="text"
             size="small"
+            prepend-icon="mdi-close-circle"
             @click="selectedTags = []"
           >
-            Alle
+            Filter zurücksetzen ({{ selectedTags.length }})
           </v-chip>
           <v-spacer />
           <v-btn
@@ -475,10 +476,10 @@ const filteredProducts = computed(() => {
     })
   }
 
-  // Tag filter
+  // Tag filter - match products that have ANY of the selected tags
   if (selectedTags.value.length > 0) {
     result = result.filter((p) =>
-      p.tags?.some((t) => selectedTags.value.includes(t.id))
+      p.tags?.some((t) => selectedTags.value.includes(t.id)) ?? false
     )
   }
 
