@@ -2,13 +2,17 @@ package at.tgm.sirbuysalot.service;
 
 import at.tgm.sirbuysalot.model.Product;
 import at.tgm.sirbuysalot.model.ShoppingList;
+import at.tgm.sirbuysalot.model.Tag;
 import at.tgm.sirbuysalot.repository.ProductRepository;
 import at.tgm.sirbuysalot.repository.ShoppingListRepository;
+import at.tgm.sirbuysalot.repository.TagRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -17,6 +21,7 @@ public class ProductService {
 
     private final ProductRepository productRepository;
     private final ShoppingListRepository listRepository;
+    private final TagRepository tagRepository;
 
     public List<Product> findByListId(UUID listId) {
         return productRepository.findByShoppingListIdAndDeletedAtIsNull(listId);
@@ -63,6 +68,15 @@ public class ProductService {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Product not found"));
         product.setDeletedAt(null);
+        product.setVersion(product.getVersion() + 1);
+        return productRepository.save(product);
+    }
+
+    public Product setTags(UUID productId, Set<UUID> tagIds) {
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new RuntimeException("Product not found"));
+        Set<Tag> tags = new HashSet<>(tagRepository.findAllById(tagIds));
+        product.setTags(tags);
         product.setVersion(product.getVersion() + 1);
         return productRepository.save(product);
     }
