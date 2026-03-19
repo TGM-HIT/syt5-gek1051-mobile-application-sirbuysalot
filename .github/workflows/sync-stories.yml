@@ -1,0 +1,31 @@
+name: Sync Story Status
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 6 * * *" # daily at 06:00 UTC
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Sync statuses from project board
+        env:
+          # GITHUB_TOKEN works for public org projects.
+          # If it fails, create a PAT with `project:read` scope
+          # and add it as a repository secret named PROJECT_TOKEN.
+          GH_TOKEN: ${{ secrets.PROJECT_TOKEN || secrets.GITHUB_TOKEN }}
+        run: python3 .github/scripts/sync-story-status.py
+
+      - name: Commit and push if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add STORIES.md
+          git diff --staged --quiet || git commit -m "sync story statuses from project board"
+          git push
