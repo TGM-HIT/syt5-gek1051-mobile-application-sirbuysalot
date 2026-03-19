@@ -39,6 +39,19 @@
           />
         </v-card>
 
+        <!-- Search -->
+        <v-text-field
+          v-if="products.length > 0"
+          v-model="searchQuery"
+          placeholder="Produkte durchsuchen..."
+          prepend-inner-icon="mdi-magnify"
+          variant="outlined"
+          density="compact"
+          hide-details
+          clearable
+          class="mb-5"
+        />
+
         <!-- Tag Filter -->
         <v-card v-if="availableTags.length > 0" class="mb-5 pa-4" border>
           <div class="d-flex align-center justify-space-between mb-3">
@@ -243,6 +256,8 @@ const showSnackbar = inject<(text: string, color?: string, icon?: string) => voi
 
 const { products, loading, error, fetchProducts, addProduct, togglePurchase } = useProducts(listId)
 
+const searchQuery = ref('')
+
 const {
   availableTags,
   filteredProducts,
@@ -252,7 +267,7 @@ const {
   hasActiveFilter,
   totalProductCount,
   filteredProductCount,
-} = useTagFilter(products)
+} = useTagFilter(products, searchQuery)
 
 const listName = ref('...')
 const showAdd = ref(false)

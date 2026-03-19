@@ -1,7 +1,7 @@
 import { ref, computed, type Ref } from 'vue'
 import type { Product, Tag } from '@/types'
 
-export function useTagFilter(products: Ref<Product[]>) {
+export function useTagFilter(products: Ref<Product[]>, searchQuery?: Ref<string>) {
   const selectedTagIds = ref<Set<string>>(new Set())
 
   const availableTags = computed<Tag[]>(() => {
@@ -19,10 +19,22 @@ export function useTagFilter(products: Ref<Product[]>) {
   })
 
   const filteredProducts = computed<Product[]>(() => {
-    if (selectedTagIds.value.size === 0) {
-      return products.value
+    let result = products.value
+
+    if (searchQuery && searchQuery.value.trim()) {
+      const query = searchQuery.value.toLowerCase().trim()
+      result = result.filter((product) => {
+        const nameMatch = product.name.toLowerCase().includes(query)
+        const tagMatch = product.tags?.some((tag) => tag.name.toLowerCase().includes(query))
+        return nameMatch || tagMatch
+      })
     }
-    return products.value.filter((product) => {
+
+    if (selectedTagIds.value.size === 0) {
+      return result
+    }
+
+    return result.filter((product) => {
       if (!product.tags || product.tags.length === 0) {
         return false
       }
