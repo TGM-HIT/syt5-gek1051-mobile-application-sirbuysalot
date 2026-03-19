@@ -1,5 +1,4 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { ref } from 'vue'
 
 // Mock Dexie db
 vi.mock('@/db', () => ({
@@ -19,8 +18,10 @@ vi.mock('@/db', () => ({
 }))
 
 // Mock productService
-const mockTogglePurchase = vi.fn()
-const mockGetAll = vi.fn()
+const { mockTogglePurchase, mockGetAll } = vi.hoisted(() => ({
+  mockTogglePurchase: vi.fn(),
+  mockGetAll: vi.fn(),
+}))
 vi.mock('@/services/productService', () => ({
   productService: {
     getAll: mockGetAll,
