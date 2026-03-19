@@ -39,6 +39,39 @@
           />
         </v-card>
 
+        <!-- Tag Filter -->
+        <v-card v-if="availableTags.length > 0" class="mb-5 pa-4" border>
+          <div class="d-flex align-center justify-space-between mb-3">
+            <span class="text-body-2 font-weight-medium">Nach Tags filtern</span>
+            <div class="d-flex align-center">
+              <span v-if="hasActiveFilter" class="text-body-2 text-medium-emphasis mr-2">
+                {{ filteredProductCount }} von {{ totalProductCount }} Produkten
+              </span>
+              <v-btn
+                v-if="hasActiveFilter"
+                variant="text"
+                size="small"
+                color="primary"
+                @click="resetFilter"
+              >
+                Alle anzeigen
+              </v-btn>
+            </div>
+          </div>
+          <div class="d-flex flex-wrap ga-2">
+            <v-chip
+              v-for="tag in availableTags"
+              :key="tag.id"
+              :color="isTagSelected(tag.id) ? 'primary' : 'default'"
+              :variant="isTagSelected(tag.id) ? 'flat' : 'outlined'"
+              label
+              @click="toggleTag(tag.id)"
+            >
+              {{ tag.name }}
+            </v-chip>
+          </div>
+        </v-card>
+
         <v-progress-linear v-if="loading" indeterminate color="primary" rounded class="mb-5" />
 
         <v-alert v-if="error" type="error" variant="tonal" class="mb-5" closable rounded="xl">
@@ -48,7 +81,7 @@
         <!-- Product list -->
         <transition-group name="product" tag="div">
           <v-card
-            v-for="product in products"
+            v-for="product in filteredProducts"
             :key="product.id"
             class="mb-3 product-card"
             :class="{ 'product-purchased': product.purchased }"
@@ -108,7 +141,7 @@
           </v-card>
         </transition-group>
 
-        <!-- Empty state -->
+        <!-- Empty state - no products -->
         <v-card v-if="!loading && products.length === 0" class="pa-8 text-center" border>
           <v-icon icon="mdi-cart-outline" size="80" color="grey-lighten-1" class="mb-4" />
           <div class="text-h6 text-medium-emphasis mb-2">Liste ist leer</div>
@@ -117,6 +150,18 @@
           </div>
           <v-btn color="primary" prepend-icon="mdi-plus" size="large" @click="showAdd = true">
             Produkt hinzufuegen
+          </v-btn>
+        </v-card>
+
+        <!-- Empty state - no filter results -->
+        <v-card v-if="!loading && products.length > 0 && filteredProducts.length === 0" class="pa-8 text-center" border>
+          <v-icon icon="mdi-filter-off-outline" size="80" color="grey-lighten-1" class="mb-4" />
+          <div class="text-h6 text-medium-emphasis mb-2">Keine Produkte gefunden</div>
+          <div class="text-body-2 text-medium-emphasis mb-6">
+            Keine Produkte entsprechen dem aktuellen Filter.
+          </div>
+          <v-btn color="primary" variant="outlined" @click="resetFilter">
+            Filter zuruecksetzen
           </v-btn>
         </v-card>
       </v-col>
@@ -186,6 +231,7 @@
 import { ref, computed, inject, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useProducts } from '@/composables/useProducts'
+import { useTagFilter } from '@/composables/useTagFilter'
 import { useUser } from '@/composables/useUser'
 import { listService } from '@/services/listService'
 import type { Product } from '@/types'
@@ -196,6 +242,17 @@ const { displayName } = useUser()
 const showSnackbar = inject<(text: string, color?: string, icon?: string) => void>('showSnackbar')!
 
 const { products, loading, error, fetchProducts, addProduct, togglePurchase } = useProducts(listId)
+
+const {
+  availableTags,
+  filteredProducts,
+  isTagSelected,
+  toggleTag,
+  resetFilter,
+  hasActiveFilter,
+  totalProductCount,
+  filteredProductCount,
+} = useTagFilter(products)
 
 const listName = ref('...')
 const showAdd = ref(false)
