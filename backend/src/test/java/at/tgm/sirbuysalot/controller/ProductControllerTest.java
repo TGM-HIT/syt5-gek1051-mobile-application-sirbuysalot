@@ -86,7 +86,7 @@ class ProductControllerTest {
         UUID productId = UUID.randomUUID();
         Product product = Product.builder()
                 .id(productId).name("Milk").purchased(true).purchasedBy("Alice").build();
-        when(service.markPurchased(eq(productId), eq("Alice"))).thenReturn(product);
+        when(service.markPurchased(eq(productId), eq(listId), eq("Alice"))).thenReturn(product);
 
         mockMvc.perform(patch("/api/lists/{listId}/products/{id}/purchase", listId, productId)
                         .contentType(MediaType.APPLICATION_JSON)
