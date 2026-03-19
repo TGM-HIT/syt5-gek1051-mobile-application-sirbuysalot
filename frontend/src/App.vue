@@ -41,6 +41,8 @@
       </template>
     </v-app-bar>
 
+    <OfflineBanner />
+
     <v-main class="bg-background">
       <router-view v-slot="{ Component }">
         <transition name="fade" mode="out-in">
@@ -97,6 +99,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, provide, reactive } from 'vue'
 import { useUser } from '@/composables/useUser'
+import OfflineBanner from '@/components/OfflineBanner.vue'
 
 const { displayName, isLoggedIn, setDisplayName } = useUser()
 
