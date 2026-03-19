@@ -21,6 +21,26 @@ function toDbProduct(p: Product, listId: string, synced: boolean) {
   }
 }
 
+async function saveProductTags(productId: string, tags: { id: string; name: string }[], listId: string) {
+  await db.productTags.where('productId').equals(productId).delete()
+  for (const tag of tags) {
+    await db.tags.put({ id: tag.id, name: tag.name, listId })
+    await db.productTags.put({ productId, tagId: tag.id })
+  }
+}
+
+async function loadProductTags(productId: string): Promise<{ id: string; name: string }[]> {
+  const productTags = await db.productTags.where('productId').equals(productId).toArray()
+  const tags: { id: string; name: string }[] = []
+  for (const pt of productTags) {
+    const tag = await db.tags.get(pt.tagId)
+    if (tag && tag.id) {
+      tags.push({ id: tag.id, name: tag.name })
+    }
+  }
+  return tags
+}
+
 export function useProducts(listId: string) {
   const products = ref<Product[]>([])
   const loading = ref(false)
@@ -34,30 +54,37 @@ export function useProducts(listId: string) {
       products.value = fetched
       for (const p of fetched) {
         await db.products.put(toDbProduct(p, listId, true))
+        if (p.tags && p.tags.length > 0) {
+          await saveProductTags(p.id, p.tags, listId)
+        }
       }
     } catch {
-      // Offline: load from Dexie cache
       const cached = await db.products
         .where('listId')
         .equals(listId)
         .filter((p) => !p.deletedAt)
         .toArray()
-      products.value = cached.map((p) => ({
-        id: p.id!,
-        name: p.name,
-        price: p.price ?? null,
-        purchased: p.purchased,
-        purchasedBy: p.purchasedBy ?? null,
-        purchasedAt: p.purchasedAt ?? null,
-        position: p.position ?? null,
-        createdAt: p.createdAt,
-        updatedAt: p.updatedAt,
-        deletedAt: p.deletedAt ?? null,
-        version: p.version,
-        tags: [],
-      }))
+      const productsWithTags: Product[] = []
+      for (const p of cached) {
+        const tags = await loadProductTags(p.id!)
+        productsWithTags.push({
+          id: p.id!,
+          name: p.name,
+          price: p.price ?? null,
+          purchased: p.purchased,
+          purchasedBy: p.purchasedBy ?? null,
+          purchasedAt: p.purchasedAt ?? null,
+          position: p.position ?? null,
+          createdAt: p.createdAt,
+          updatedAt: p.updatedAt,
+          deletedAt: p.deletedAt ?? null,
+          version: p.version,
+          tags,
+        })
+      }
+      products.value = productsWithTags
       if (cached.length === 0) {
-        error.value = 'Offline – keine gecachten Daten verfügbar'
+        error.value = 'Offline - keine gecachten Daten verfuegbar'
       }
     } finally {
       loading.value = false
