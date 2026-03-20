@@ -7,11 +7,13 @@ import at.tgm.sirbuysalot.repository.ProductRepository;
 import at.tgm.sirbuysalot.repository.ShoppingListRepository;
 import at.tgm.sirbuysalot.repository.TagRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -22,6 +24,7 @@ public class ProductService {
     private final ProductRepository productRepository;
     private final ShoppingListRepository listRepository;
     private final TagRepository tagRepository;
+    private final SimpMessagingTemplate messagingTemplate;
 
     public List<Product> findByListId(UUID listId) {
         return productRepository.findByShoppingListIdAndDeletedAtIsNull(listId);
@@ -31,7 +34,9 @@ public class ProductService {
         ShoppingList list = listRepository.findById(listId)
                 .orElseThrow(() -> new RuntimeException("List not found"));
         product.setShoppingList(list);
-        return productRepository.save(product);
+        Product saved = productRepository.save(product);
+        broadcastChange(listId, "product_created", saved);
+        return saved;
     }
 
     public Product update(UUID id, Product updated) {
@@ -40,7 +45,9 @@ public class ProductService {
         product.setName(updated.getName());
         product.setPrice(updated.getPrice());
         product.setVersion(product.getVersion() + 1);
-        return productRepository.save(product);
+        Product saved = productRepository.save(product);
+        broadcastChange(product.getShoppingList().getId(), "product_updated", saved);
+        return saved;
     }
 
     public Product markPurchased(UUID id, String purchasedBy) {
@@ -50,7 +57,9 @@ public class ProductService {
         product.setPurchasedBy(product.getPurchased() ? purchasedBy : null);
         product.setPurchasedAt(product.getPurchased() ? LocalDateTime.now() : null);
         product.setVersion(product.getVersion() + 1);
-        return productRepository.save(product);
+        Product saved = productRepository.save(product);
+        broadcastChange(product.getShoppingList().getId(), "product_toggled", saved);
+        return saved;
     }
 
     public void softDelete(UUID id) {
@@ -58,6 +67,7 @@ public class ProductService {
                 .orElseThrow(() -> new RuntimeException("Product not found"));
         product.setDeletedAt(LocalDateTime.now());
         productRepository.save(product);
+        broadcastChange(product.getShoppingList().getId(), "product_deleted", Map.of("id", id));
     }
 
     public List<Product> findDeletedByListId(UUID listId) {
@@ -78,6 +88,16 @@ public class ProductService {
         Set<Tag> tags = new HashSet<>(tagRepository.findAllById(tagIds));
         product.setTags(tags);
         product.setVersion(product.getVersion() + 1);
-        return productRepository.save(product);
+        Product saved = productRepository.save(product);
+        broadcastChange(product.getShoppingList().getId(), "product_updated", saved);
+        return saved;
+    }
+
+    private void broadcastChange(UUID listId, String changeType, Object data) {
+        messagingTemplate.convertAndSend("/topic/lists/" + listId, Map.of(
+                "type", changeType,
+                "data", data,
+                "timestamp", LocalDateTime.now().toString()
+        ));
     }
 }
