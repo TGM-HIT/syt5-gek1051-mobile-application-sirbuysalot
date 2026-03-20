@@ -6,6 +6,7 @@ export interface ShoppingList {
   accessCode?: string
   createdAt: string
   updatedAt: string
+  lastModified?: string
   deletedAt?: string
   version: number
   synced: boolean
@@ -22,8 +23,19 @@ export interface Product {
   position: number
   createdAt: string
   updatedAt: string
+  lastModified?: string
   deletedAt?: string
   version: number
+  synced: boolean
+}
+
+export interface SyncOperation {
+  id?: number
+  type: 'create' | 'update' | 'delete'
+  entity: 'list' | 'product'
+  entityId: string
+  payload: any
+  timestamp: string
   synced: boolean
 }
 
@@ -43,6 +55,7 @@ class SirBuysALotDB extends Dexie {
   products!: Table<Product>
   tags!: Table<Tag>
   productTags!: Table<ProductTag>
+  syncQueue!: Table<SyncOperation>
 
   constructor() {
     super('sirbuysalot')
@@ -51,6 +64,13 @@ class SirBuysALotDB extends Dexie {
       products: 'id, listId, name, purchased, synced',
       tags: 'id, name, listId',
       productTags: '[productId+tagId], productId, tagId',
+    })
+    this.version(2).stores({
+      shoppingLists: 'id, name, accessCode, lastModified',
+      products: 'id, listId, name, purchased, lastModified',
+      tags: 'id, name, listId',
+      productTags: '[productId+tagId], productId, tagId',
+      syncQueue: '++id, entity, entityId, timestamp',
     })
   }
 }

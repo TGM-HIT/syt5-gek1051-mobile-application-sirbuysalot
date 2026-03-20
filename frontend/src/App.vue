@@ -41,6 +41,20 @@
       </template>
     </v-app-bar>
 
+    <v-banner
+      v-if="!isOnline"
+      sticky
+      lines="one"
+      icon="mdi-wifi-off"
+      color="warning"
+      class="offline-banner"
+    >
+      <v-banner-text>
+        <span class="font-weight-medium">Offline-Modus</span>
+        <span class="text-body-2 ml-2">({{ pendingSyncCount }} Änderungen warten auf Sync)</span>
+      </v-banner-text>
+    </v-banner>
+
     <v-main class="bg-background">
       <router-view v-slot="{ Component }">
         <transition name="fade" mode="out-in">
@@ -95,12 +109,16 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, provide, reactive } from 'vue'
+import { ref, computed, onMounted, onUnmounted, provide, reactive, watch } from 'vue'
 import { useUser } from '@/composables/useUser'
+import { useOnlineStatus, initOnlineStatus } from '@/composables/useOnlineStatus'
 import { useShoppingLists } from '@/composables/useShoppingLists'
 
 const { displayName, isLoggedIn, setDisplayName } = useUser()
+const { isOnline, pendingSyncCount, updatePendingCount } = useOnlineStatus()
 const { syncPendingLists } = useShoppingLists()
+
+initOnlineStatus()
 
 const showNameDialog = ref(false)
 const nameInput = ref('')
@@ -126,12 +144,25 @@ function showSnackbar(text: string, color = 'success', icon = 'mdi-check-circle'
 
 provide('showSnackbar', showSnackbar)
 
-onMounted(() => {
+async function triggerSync() {
+  await syncPendingLists()
+  await updatePendingCount()
+  showSnackbar('Synchronisation abgeschlossen', 'success', 'mdi-check-circle')
+}
+
+watch(isOnline, async (online) => {
+  if (online) {
+    await triggerSync()
+  }
+})
+
+onMounted(async () => {
   if (!isLoggedIn()) {
     showNameDialog.value = true
   } else {
     nameInput.value = displayName()
   }
+  await updatePendingCount()
   window.addEventListener('online', syncPendingLists)
 })
 
@@ -151,6 +182,10 @@ function saveName() {
 <style>
 .app-bar-gradient {
   background: linear-gradient(135deg, #4A90D9 0%, #6C63FF 100%) !important;
+}
+
+.offline-banner {
+  z-index: 1000;
 }
 
 .user-chip {

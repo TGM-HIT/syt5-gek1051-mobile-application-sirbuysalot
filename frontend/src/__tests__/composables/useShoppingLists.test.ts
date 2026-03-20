@@ -7,10 +7,18 @@ vi.mock('@/db', () => ({
   db: {
     shoppingLists: {
       add: vi.fn().mockResolvedValue('mock-id'),
-      update: vi.fn().mockResolvedValue(1),
       put: vi.fn().mockResolvedValue('mock-id'),
+      delete: vi.fn().mockResolvedValue(undefined),
+      update: vi.fn().mockResolvedValue(1),
+      clear: vi.fn().mockResolvedValue(undefined),
+      toArray: vi.fn().mockResolvedValue([]),
       filter: vi.fn().mockReturnValue({
         toArray: vi.fn().mockResolvedValue([]),
+      }),
+      where: vi.fn().mockReturnValue({
+        equals: vi.fn().mockReturnValue({
+          toArray: vi.fn().mockResolvedValue([]),
+        }),
       }),
     },
   },
@@ -22,6 +30,14 @@ vi.mock('@/services/listService', () => ({
     create: vi.fn(),
     update: vi.fn(),
     remove: vi.fn(),
+  },
+}))
+
+vi.mock('@/services/syncService', () => ({
+  syncService: {
+    addToQueue: vi.fn().mockResolvedValue(undefined),
+    getPendingCount: vi.fn().mockResolvedValue(0),
+    processQueue: vi.fn().mockResolvedValue(undefined),
   },
 }))
 
@@ -47,9 +63,14 @@ describe('useShoppingLists', () => {
     lists.value = []
     loading.value = false
     error.value = null
+    Object.defineProperty(navigator, 'onLine', {
+      value: true,
+      writable: true,
+      configurable: true,
+    })
   })
 
-  it('fetchLists populates the lists ref', async () => {
+  it('fetchLists populates the lists ref when online', async () => {
     const mockLists = [makeList()]
     vi.mocked(listService.getAll).mockResolvedValue(mockLists)
 
@@ -72,25 +93,27 @@ describe('useShoppingLists', () => {
     expect(loading.value).toBe(false)
   })
 
-  it('fetchLists sets error on failure', async () => {
+  it('fetchLists falls back to Dexie on network error', async () => {
     vi.mocked(listService.getAll).mockRejectedValue(new Error('Network error'))
 
-    const { error, fetchLists } = useShoppingLists()
+    const { lists, fetchLists } = useShoppingLists()
     await fetchLists()
 
-    expect(error.value).toBe('Keine Verbindung zum Server')
+    // Falls back to local cache (empty mock), no crash
+    expect(lists.value).toEqual([])
   })
 
-  it('createList prepends to the list', async () => {
+  it('createList prepends to the list and syncs when online', async () => {
     const created = makeList({ id: '2', name: 'New List' })
     vi.mocked(listService.create).mockResolvedValue(created)
 
     const { lists, createList } = useShoppingLists()
-    const result = await createList('New List')
+    await createList('New List')
 
-    expect(listService.create).toHaveBeenCalledWith(expect.objectContaining({ name: 'New List' }))
-    expect(result).toEqual(created)
-    expect(lists.value[0]).toEqual(created)
+    expect(listService.create).toHaveBeenCalledWith(
+      expect.objectContaining({ name: 'New List' }),
+    )
+    expect(lists.value.length).toBeGreaterThanOrEqual(1)
   })
 
   it('updateList replaces the list in the array', async () => {

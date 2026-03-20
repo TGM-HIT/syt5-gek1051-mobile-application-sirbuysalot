@@ -20,6 +20,14 @@ vi.mock('@/services/listService', () => ({
   },
 }))
 
+vi.mock('@/services/syncService', () => ({
+  syncService: {
+    addToQueue: vi.fn().mockResolvedValue(undefined),
+    getPendingCount: vi.fn().mockResolvedValue(0),
+    processQueue: vi.fn().mockResolvedValue(undefined),
+  },
+}))
+
 import { db } from '@/db'
 import { listService } from '@/services/listService'
 import { useShoppingLists } from '@/composables/useShoppingLists'

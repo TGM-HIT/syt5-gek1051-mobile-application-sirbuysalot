@@ -1,24 +1,11 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { productService } from '@/services/productService'
-import { db } from '@/db'
+import { syncService } from '@/services/syncService'
+import { db, type Product as DbProduct } from '@/db'
 import type { Product, CreateProductPayload, UpdateProductPayload } from '@/types'
 
-function toDbProduct(p: Product, listId: string, synced: boolean) {
-  return {
-    id: p.id,
-    listId,
-    name: p.name,
-    price: p.price ?? undefined,
-    purchased: p.purchased,
-    purchasedBy: p.purchasedBy ?? undefined,
-    purchasedAt: p.purchasedAt ?? undefined,
-    position: p.position ?? 0,
-    createdAt: p.createdAt,
-    updatedAt: p.updatedAt,
-    deletedAt: p.deletedAt ?? undefined,
-    version: p.version,
-    synced,
-  }
+function generateUUID(): string {
+  return crypto.randomUUID()
 }
 
 async function saveProductTags(productId: string, tags: { id: string; name: string }[], listId: string) {
@@ -50,25 +37,31 @@ export function useProducts(listId: string) {
     loading.value = true
     error.value = null
     try {
-      const fetched = await productService.getAll(listId)
-      products.value = fetched
-      for (const p of fetched) {
-        await db.products.put(toDbProduct(p, listId, true))
-        if (p.tags && p.tags.length > 0) {
-          await saveProductTags(p.id, p.tags, listId)
+      if (navigator.onLine) {
+        const serverProducts = await productService.getAll(listId)
+        products.value = serverProducts
+        await db.products.where('listId').equals(listId).delete()
+        for (const product of serverProducts) {
+          await db.products.put({
+            id: product.id,
+            listId,
+            name: product.name,
+            price: product.price ?? undefined,
+            purchased: product.purchased,
+            purchasedBy: product.purchasedBy ?? undefined,
+            purchasedAt: product.purchasedAt ?? undefined,
+            position: product.position ?? 0,
+            createdAt: product.createdAt,
+            updatedAt: product.updatedAt,
+            version: product.version,
+            synced: true,
+          })
         }
-      }
-    } catch {
-      const cached = await db.products
-        .where('listId')
-        .equals(listId)
-        .filter((p) => !p.deletedAt)
-        .toArray()
-      const productsWithTags: Product[] = []
-      for (const p of cached) {
-        const tags = await loadProductTags(p.id!)
-        productsWithTags.push({
+      } else {
+        const localProducts = await db.products.where('listId').equals(listId).toArray()
+        products.value = localProducts.map((p) => ({
           id: p.id!,
+          listId: p.listId,
           name: p.name,
           price: p.price ?? null,
           purchased: p.purchased,
@@ -79,12 +72,29 @@ export function useProducts(listId: string) {
           updatedAt: p.updatedAt,
           deletedAt: p.deletedAt ?? null,
           version: p.version,
-          tags,
-        })
+          tags: [],
+        }))
       }
-      products.value = productsWithTags
-      if (cached.length === 0) {
-        error.value = 'Offline – keine gecachten Daten verfügbar'
+    } catch (e: any) {
+      const localProducts = await db.products.where('listId').equals(listId).toArray()
+      if (localProducts.length > 0) {
+        products.value = localProducts.map((p) => ({
+          id: p.id!,
+          listId: p.listId,
+          name: p.name,
+          price: p.price ?? null,
+          purchased: p.purchased,
+          purchasedBy: p.purchasedBy ?? null,
+          purchasedAt: p.purchasedAt ?? null,
+          position: p.position ?? null,
+          createdAt: p.createdAt,
+          updatedAt: p.updatedAt,
+          deletedAt: p.deletedAt ?? null,
+          version: p.version,
+          tags: [],
+        }))
+      } else {
+        error.value = e.message ?? 'Fehler beim Laden der Produkte'
       }
     } finally {
       loading.value = false
@@ -92,58 +102,133 @@ export function useProducts(listId: string) {
   }
 
   async function addProduct(payload: CreateProductPayload) {
-    const created = await productService.create(listId, payload)
-    products.value.push(created)
-    await db.products.put(toDbProduct(created, listId, true))
-    return created
+    const now = new Date().toISOString()
+    const tempId = generateUUID()
+
+    const localProduct: DbProduct = {
+      id: tempId,
+      listId,
+      name: payload.name,
+      price: payload.price ?? undefined,
+      purchased: false,
+      position: products.value.length,
+      createdAt: now,
+      updatedAt: now,
+      version: 0,
+      synced: false,
+    }
+
+    await db.products.add(localProduct)
+    const newProduct: Product = {
+      id: tempId,
+      name: payload.name,
+      price: payload.price ?? null,
+      purchased: false,
+      purchasedBy: null,
+      purchasedAt: null,
+      position: products.value.length,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+      version: 0,
+      tags: [],
+    }
+    products.value.push(newProduct)
+
+    if (navigator.onLine) {
+      try {
+        const created = await productService.create(listId, payload)
+        await db.products.update(tempId, {
+          id: created.id,
+          version: created.version,
+          synced: true,
+        })
+        const idx = products.value.findIndex((p) => p.id === tempId)
+        if (idx !== -1) products.value[idx] = { ...products.value[idx], id: created.id, version: created.version }
+        return created
+      } catch {
+        await syncService.addToQueue('create', 'product', tempId, { ...payload, listId })
+      }
+    } else {
+      await syncService.addToQueue('create', 'product', tempId, { ...payload, listId })
+    }
+
+    return products.value.find((p) => p.id === tempId)
   }
 
   async function updateProduct(productId: string, payload: UpdateProductPayload) {
-    const updated = await productService.update(listId, productId, payload)
+    const now = new Date().toISOString()
     const idx = products.value.findIndex((p) => p.id === productId)
-    if (idx !== -1) products.value[idx] = updated
-    await db.products.put(toDbProduct(updated, listId, true))
-    return updated
+    
+    if (idx !== -1) {
+      products.value[idx] = { ...products.value[idx], ...payload, updatedAt: now }
+    }
+
+    await db.products.update(productId, {
+      name: payload.name,
+      price: payload.price ?? undefined,
+      position: payload.position ?? 0,
+      synced: false,
+    })
+
+    if (navigator.onLine) {
+      try {
+        const updated = await productService.update(listId, productId, payload)
+        await db.products.update(productId, { version: updated.version, synced: true })
+        const idx2 = products.value.findIndex((p) => p.id === productId)
+        if (idx2 !== -1) products.value[idx2] = { ...products.value[idx2], version: updated.version }
+        return updated
+      } catch {
+        await syncService.addToQueue('update', 'product', productId, { ...payload, listId })
+      }
+    } else {
+      await syncService.addToQueue('update', 'product', productId, { ...payload, listId })
+    }
+
+    return products.value.find((p) => p.id === productId)
   }
 
   async function togglePurchase(productId: string, purchasedBy: string) {
+    const product = products.value.find((p) => p.id === productId)
+    if (!product) return
+
+    const now = new Date().toISOString()
+    const newPurchased = !product.purchased
+    const newPurchasedAt = newPurchased ? now : null
+
     const idx = products.value.findIndex((p) => p.id === productId)
-    if (idx === -1) return
-
-    const current = products.value[idx]
-    const newPurchased = !current.purchased
-    const newPurchasedAt = newPurchased ? new Date().toISOString() : null
-
-    // Optimistic update
-    products.value[idx] = {
-      ...current,
-      purchased: newPurchased,
-      purchasedBy: newPurchased ? purchasedBy : null,
-      purchasedAt: newPurchasedAt,
+    if (idx !== -1) {
+      products.value[idx] = {
+        ...products.value[idx],
+        purchased: newPurchased,
+        purchasedBy: newPurchased ? purchasedBy : null,
+        purchasedAt: newPurchasedAt,
+        updatedAt: now,
+      }
     }
 
-    // Persist locally with synced: false
-    await db.products.put({
-      ...toDbProduct(current, listId, false),
+    await db.products.update(productId, {
       purchased: newPurchased,
       purchasedBy: newPurchased ? purchasedBy : undefined,
       purchasedAt: newPurchasedAt ?? undefined,
+      synced: false,
     })
 
-    try {
-      const updated = await productService.togglePurchase(listId, productId, purchasedBy)
-      products.value[idx] = updated
-      await db.products.update(productId, {
-        purchased: updated.purchased,
-        purchasedBy: updated.purchasedBy ?? undefined,
-        purchasedAt: updated.purchasedAt ?? undefined,
-        version: updated.version,
-        synced: true,
-      })
-      return updated
-    } catch {
-      // Offline: keep optimistic state, synced: false stays in Dexie
+    if (navigator.onLine) {
+      try {
+        const updated = await productService.togglePurchase(listId, productId, purchasedBy)
+        await db.products.update(productId, { version: updated.version, synced: true })
+        const idx2 = products.value.findIndex((p) => p.id === productId)
+        if (idx2 !== -1) products.value[idx2] = { ...products.value[idx2], version: updated.version }
+        return updated
+      } catch {
+        await syncService.addToQueue('update', 'product', productId, { purchased: newPurchased, purchasedBy, listId })
+      }
+    } else {
+      await syncService.addToQueue('update', 'product', productId, { purchased: newPurchased, purchasedBy, listId })
     }
+
+    return products.value.find((p) => p.id === productId)
   }
 
   async function syncPending() {
@@ -186,9 +271,18 @@ export function useProducts(listId: string) {
   }
 
   async function removeProduct(productId: string) {
-    await productService.remove(listId, productId)
+    await db.products.delete(productId)
     products.value = products.value.filter((p) => p.id !== productId)
-    await db.products.update(productId, { deletedAt: new Date().toISOString() })
+
+    if (navigator.onLine) {
+      try {
+        await productService.remove(listId, productId)
+      } catch {
+        await syncService.addToQueue('delete', 'product', productId, { listId })
+      }
+    } else {
+      await syncService.addToQueue('delete', 'product', productId, { listId })
+    }
   }
 
   function handleOnline() {

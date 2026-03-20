@@ -1,14 +1,18 @@
 import { ref } from 'vue'
 import { listService } from '@/services/listService'
+import { syncService } from '@/services/syncService'
 import { db } from '@/db'
-import type { ShoppingList as DexieList } from '@/db'
 import type { ShoppingList } from '@/types'
 
 const lists = ref<ShoppingList[]>([])
 const loading = ref(false)
 const error = ref<string | null>(null)
 
-function toApiList(local: DexieList): ShoppingList {
+function generateUUID(): string {
+  return crypto.randomUUID()
+}
+
+function toApiList(local: any): ShoppingList {
   return {
     id: local.id!,
     name: local.name,
@@ -28,33 +32,29 @@ export function useShoppingLists() {
     error.value = null
     try {
       if (navigator.onLine) {
-        const remote = await listService.getAll()
-        for (const list of remote) {
+        const serverLists = await listService.getAll()
+        lists.value = serverLists
+        await db.shoppingLists.clear()
+        for (const list of serverLists) {
           await db.shoppingLists.put({
             id: list.id,
             name: list.name,
             accessCode: list.accessCode ?? undefined,
             createdAt: list.createdAt,
             updatedAt: list.updatedAt,
-            deletedAt: list.deletedAt ?? undefined,
             version: list.version,
             synced: true,
           })
         }
-        lists.value = remote
       } else {
-        const local = await db.shoppingLists.filter((l) => !l.deletedAt).toArray()
-        lists.value = local.map(toApiList)
+        const localLists = await db.shoppingLists.toArray()
+        lists.value = localLists.map(toApiList)
       }
-    } catch {
-      // Fallback to local cache on network error
-      try {
-        const local = await db.shoppingLists.filter((l) => !l.deletedAt).toArray()
-        lists.value = local.map(toApiList)
-        if (local.length === 0) {
-          error.value = 'Keine Verbindung zum Server'
-        }
-      } catch (e: any) {
+    } catch (e: any) {
+      const localLists = await db.shoppingLists.toArray()
+      if (localLists.length > 0) {
+        lists.value = localLists.map(toApiList)
+      } else {
         error.value = e.message ?? 'Fehler beim Laden der Listen'
       }
     } finally {
@@ -63,10 +63,9 @@ export function useShoppingLists() {
   }
 
   async function createList(name: string): Promise<ShoppingList> {
-    const id = crypto.randomUUID()
+    const id = generateUUID()
     const now = new Date().toISOString()
 
-    // 1. Offline-First: lokal speichern mit synced: false
     await db.shoppingLists.add({
       id,
       name,
@@ -76,7 +75,6 @@ export function useShoppingLists() {
       synced: false,
     })
 
-    // 2. Sofort reaktiv in der Liste anzeigen
     const localList: ShoppingList = {
       id,
       name,
@@ -90,7 +88,6 @@ export function useShoppingLists() {
     }
     lists.value.unshift(localList)
 
-    // 3. Wenn online: per POST /api/lists synchronisieren
     if (navigator.onLine) {
       try {
         const created = await listService.create({ name, id })
@@ -102,15 +99,17 @@ export function useShoppingLists() {
         if (idx !== -1) lists.value[idx] = created
         return created
       } catch {
-        // Bleibt als synced: false – wird beim nächsten Online-Gang nachgeholt
+        await syncService.addToQueue('create', 'list', id, { name })
       }
+    } else {
+      await syncService.addToQueue('create', 'list', id, { name })
     }
 
     return localList
   }
 
   async function syncPendingLists(): Promise<void> {
-    const unsynced = await db.shoppingLists.filter((l) => !l.synced && !l.deletedAt).toArray()
+    const unsynced = await db.shoppingLists.filter((l: any) => !l.synced && !l.deletedAt).toArray()
     for (const local of unsynced) {
       try {
         const created = await listService.create({ name: local.name, id: local.id })
@@ -124,15 +123,49 @@ export function useShoppingLists() {
   }
 
   async function updateList(id: string, payload: Partial<ShoppingList>) {
-    const updated = await listService.update(id, payload)
+    const now = new Date().toISOString()
+    
+    await db.shoppingLists.update(id, {
+      name: payload.name,
+      accessCode: payload.accessCode,
+      synced: false,
+    })
+
     const idx = lists.value.findIndex((l) => l.id === id)
-    if (idx !== -1) lists.value[idx] = updated
-    return updated
+    if (idx !== -1) {
+      lists.value[idx] = { ...lists.value[idx], ...payload, updatedAt: now }
+    }
+
+    if (navigator.onLine) {
+      try {
+        const updated = await listService.update(id, payload)
+        await db.shoppingLists.update(id, { version: updated.version, synced: true })
+        const idx2 = lists.value.findIndex((l) => l.id === id)
+        if (idx2 !== -1) lists.value[idx2] = { ...lists.value[idx2], version: updated.version }
+        return updated
+      } catch {
+        await syncService.addToQueue('update', 'list', id, payload)
+      }
+    } else {
+      await syncService.addToQueue('update', 'list', id, payload)
+    }
+
+    return lists.value.find((l) => l.id === id)
   }
 
   async function removeList(id: string) {
-    await listService.remove(id)
+    await db.shoppingLists.delete(id)
     lists.value = lists.value.filter((l) => l.id !== id)
+
+    if (navigator.onLine) {
+      try {
+        await listService.remove(id)
+      } catch {
+        await syncService.addToQueue('delete', 'list', id, {})
+      }
+    } else {
+      await syncService.addToQueue('delete', 'list', id, {})
+    }
   }
 
   return {

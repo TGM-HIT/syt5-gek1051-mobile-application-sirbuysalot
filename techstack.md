@@ -1,330 +1,642 @@
 # Techstack - SirBuysALot
 
-*dies ist noch die Planung von der Technologie mit der SirBuysALot umgesetzt werden soll, d.h. es ist nicht finalisiert und neue oder veränderte Inhalte können vorkommen*
+*Dies ist die technische Spezifikation des SirBuysALot-Projekts. Die Dokumentation wird kontinuierlich aktualisiert.*
 
-## Architektur Big-Picture & Systemlandschaft
+---
 
-Das folgende Diagramm veranschaulicht das Zusammenspiel der Komponenten, die Kommunikation und die Datenhaltung in der *SirBuysALot*-Architektur:
+## Inhaltsverzeichnis
 
-```text
-      [ MOBILE / BROWSER CLIENT ]                                 [ BACKEND SERVER ]
-+-------------------------------------+                  +-----------------------------------+
-|             Vue 3 PWA               |                  |       Spring Boot (Java 21)       |
-|                                     |                  |                                   |
-|  +-------------------------------+  |   1. REST API    |  +-----------------------------+  |
-|  |       State Management        |  |  (Alle Schreib-  |  |      REST Controllers       |  |
-|  |      (Vue Refs / Stores)      |  |-- Operationen) ->|  |  (Auth, Listen, Konflikte)  |  |
-|  +-------------------------------+  |                  |  +-----------------------------+  |
-|          ^               |          |<-----------------|                 |                 |
-|          | (Reactivity)  | (Write)  |                  |                 |                 |
-|          v               v          |                  |                 v                 |
-|  +-------------------------------+  |  2. WebSockets   |  +-----------------------------+  |
-|  |     Lokaler Datenspeicher     |  |<- (Echtzeit   ---|  |     WebSocket / STOMP       |  |
-|  |  IndexedDB (via Dexie.js)     |  |    Updates)      |  |  (Push-Events an Clients)   |  |
-|  +-------------------------------+  |                  |  +-----------------------------+  |
-|          ^               ^          |                  |                 |                 |
-|          |               |          |                  |                 |                 |
-+----------|---------------|----------+                  +-----------------|-----------------+
-           |               |                                               |
-      (Offline)        (Online)                                            v
-           |               |                             +-----------------------------------+
-      +---------+     +---------+                        |          PostgreSQL 16 DB         |
-      | UX Fall |     | UX Fall |                        |  +-----------------------------+  |
-      | (Lokal) |     | (Sync)  |                        |  | Relational : Users, Lists   |  |
-      +---------+     +---------+                        |  | JSONB      : Item-Metadata  |  |
-                                                         |  +-----------------------------+  |
-                                                         +-----------------------------------+
+1. [Architektur](#1-architektur-big-picture--systemlandschaft)
+2. [Datenmodelle](#2-datenmodelle)
+3. [Systemkommunikation](#3-systemkommunikation)
+4. [Synchronisationsdesign](#4-synchronisationsdesign)
+5. [Konfliktlösung](#5-konfliktlösung)
+6. [Frontend](#6-frontend)
+7. [Backend](#7-backend)
+8. [Datenbank](#8-datenbank)
+9. [Programmierumgebung](#9-programmierumgebung)
+10. [CI/CD & Testing](#10-cicd--testing)
+
+---
+
+## 1. Architektur Big-Picture & Systemlandschaft
+
+```
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                           FRONTEND (PWA)                                    │
+│  ┌──────────────┐    ┌─────────────────┐    ┌────────────────────────┐    │
+│  │   Vue 3 UI   │───▶│ Composables     │───▶│   IndexedDB (Dexie)   │    │
+│  │  Components   │    │ (CRUD + Sync)  │    │   Lokaler Cache       │    │
+│  └──────────────┘    └─────────────────┘    └────────────────────────┘    │
+│                              │                          │                    │
+│                              ▼                          ▼                    │
+│                    ┌─────────────────┐    ┌────────────────────────┐    │
+│                    │ useOnlineStatus │    │    SyncQueue           │    │
+│                    │ Composable       │    │ (Pending Operations)   │    │
+│                    └─────────────────┘    └────────────────────────┘    │
+└──────────────────────────────────────────────────────────────────────────────┘
+              │                                           │
+              │ Online                                   │ Offline
+              ▼                                           ▼
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                           BACKEND (Server)                                  │
+│  ┌──────────────┐    ┌─────────────────┐    ┌────────────────────────┐    │
+│  │  REST API    │───▶│ Spring Boot     │───▶│     PostgreSQL 16     │    │
+│  │   (Axios)    │    │ Controllers     │    │   (Source of Truth)   │    │
+│  └──────────────┘    └─────────────────┘    └────────────────────────┘    │
+│                              │                          │                    │
+│                              ▼                          │                    │
+│                    ┌─────────────────┐                │                    │
+│                    │ WebSocket/STOMP  │◀───────────────┘                    │
+│                    │ (Push Updates)   │                                     │
+│                    └─────────────────┘                                     │
+└──────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## Aussehen eines Einkaufslisten-Items
+## 2. Datenmodelle
 
-Damit die Synchronisation sinnvoll und funktionsfähig ist, soll ein Item der Einkaufsliste folgendermaßen aussehen: 
+### 2.1 ShoppingList
 
-| **Attribut**       | **Typ**     | **Speicherort**     | **Beschreibung**                                                             |
-| ------------------ | ----------- | ------------------- | ---------------------------------------------------------------------------- |
-| `id`               | UUID        | Lokal & Server      | Eindeutiger Identifikator (vom Client generiert, um Duplikate zu vermeiden). |
-| `listId`           | UUID        | Lokal & Server      | Fremdschlüssel zur zugehörigen Liste.                                        |
-| `name`             | String      | Lokal & Server      | Name des Produkts (z.B. "Milch").                                            |
-| `amount`           | String      | Lokal & Server      | Menge/Einheit (z.B. "2 Packungen").                                          |
-| `isDone`           | Boolean     | Lokal & Server      | Status (abgehakt oder nicht).                                                |
-| **`version`**      | **Integer** | **Server (Master)** | **Zentraler Zähler für Konflikterkennung.**                                  |
-| **`lastModified`** | Timestamp   | Lokal & Server      | Zeitstempel der letzten Änderung.                                            |
-| `synced`           | Boolean     | Nur Lokal           | Flag: `true` = identisch mit Server, `false` = muss noch gepusht werden.     |
+| Attribut | Typ | Speicherort | Beschreibung |
+|----------|-----|-------------|--------------|
+| `id` | UUID | Lokal & Server | Eindeutiger Identifikator (Client-generiert für Offline) |
+| `name` | String | Lokal & Server | Name der Einkaufsliste |
+| `accessCode` | String | Lokal & Server | Freigabecode für Teilnehmer (nullable) |
+| `createdAt` | Timestamp | Lokal & Server | Erstellungszeitpunkt |
+| `updatedAt` | Timestamp | Lokal & Server | Letztes Update |
+| `lastModified` | Timestamp | Lokal & Server | Für Sync-Reihenfolge |
+| `deletedAt` | Timestamp | Lokal & Server | Soft-Delete (nullable) |
+| `version` | Integer | **Server (Master)** | Für Konflikterkennung |
+| `synced` | Boolean | **Nur Lokal** | `true` = mit Server identisch |
 
-Für Tags (Kategorien/Gruppen eines Produkts) wird eine M2M Tabelle benötigt welche die UUID der Kategorie, mit der UUID des Produktes veknüpft wird.
+### 2.2 Product (Einkaufslisten-Item)
 
-| Attribut    | Typ  | Speicherort    | Beschreibung              |
-| ----------- | ---- | -------------- | ------------------------- |
-| `produktId` | UUID | Lokal & Server | UUID des Produktes        |
-| `tagId`     | UUID | Lokal & Server | UUID der Kategorie/Gruppe |
+| Attribut | Typ | Speicherort | Beschreibung |
+|----------|-----|-------------|--------------|
+| `id` | UUID | Lokal & Server | Eindeutiger Identifikator |
+| `listId` | UUID | Lokal & Server | Fremdschlüssel zur Liste |
+| `name` | String | Lokal & Server | Produktname (z.B. "Milch") |
+| `price` | Decimal | Lokal & Server | Preis (nullable) |
+| `purchased` | Boolean | Lokal & Server | Gekauft-Status |
+| `purchasedBy` | String | Lokal & Server | Wer hat es gekauft? (nullable) |
+| `purchasedAt` | Timestamp | Lokal & Server | Wann gekauft (nullable) |
+| `position` | Integer | Lokal & Server | Sortierreihenfolge |
+| `createdAt` | Timestamp | Lokal & Server | Erstellungszeitpunkt |
+| `updatedAt` | Timestamp | Lokal & Server | Letztes Update |
+| `lastModified` | Timestamp | Lokal & Server | Für Sync-Reihenfolge |
+| `deletedAt` | Timestamp | Lokal & Server | Soft-Delete (nullable) |
+| `version` | Integer | **Server (Master)** | Für Konflikterkennung |
+| `synced` | Boolean | **Nur Lokal** | `true` = mit Server identisch |
 
-Dafür wird folgendes Tag gebraucht:
+### 2.3 Tag
 
-| Attribut | Typ    | Speicherort    | Beschreibung                                 |
-| -------- | ------ | -------------- | -------------------------------------------- |
-| `id`     | UUID   | Lokal & Server | Eindeutiger Identifikator des Tags           |
-| `tag`    | String | Lokal & Server | Der Name der Kategorie (z.B. "Milchprodukt") |
+| Attribut | Typ | Speicherort | Beschreibung |
+|----------|-----|-------------|--------------|
+| `id` | UUID | Lokal & Server | Eindeutiger Identifikator |
+| `name` | String | Lokal & Server | Tag-Name (z.B. "Milchprodukt") |
+| `listId` | UUID | Lokal & Server | Zugehörige Liste |
 
+### 2.4 ProductTag (M2M Beziehung)
 
+| Attribut | Typ | Speicherort | Beschreibung |
+|----------|-----|-------------|--------------|
+| `productId` | UUID | Lokal & Server | UUID des Produkts |
+| `tagId` | UUID | Lokal & Server | UUID des Tags |
 
----
+### 2.5 SyncOperation (Lokale Queue)
 
-## Systemkommunikation: Wie die Geräte miteinander sprechen
-
-Um eine nahtlose User-Experience zu garantieren, läuft die Kommunikation zweigleisig:
-
-1. **REST API (Axios):** Wird für **alle schreibenden und verbindlichen Anfragen** genutzt (Login, initiale Listen laden, Senden von Änderungen, Sync-Batch). Dies ermöglicht eine direkte Rückmeldung (z.B. HTTP 409 bei Versionskonflikten).
-2. **WebSockets (STOMP):** Wird für den **reaktiven Live-Empfang** genutzt. Wenn ein Client eine Änderung via REST erfolgreich durchgeführt hat, pusht der Server dieses Event an alle anderen betroffenen Clients, um deren UI in Echtzeit zu aktualisieren.
-
----
-
-## Konsistenzwahrung & Offline-Szenarien (Sync-Logik)
-
-### Die Lösung: Lokaler Cache & Versioning
-
-1. **Datensatz-Versionierung:** Jede Einkaufsliste und jedes Item erhält in der PostgreSQL-Datenbank ein Feld `version` (Integer).
-2. **Lokaler Fallback (Dexie.js):** Geht das Gerät offline (Erkennung via `navigator.onLine` oder API-Timeouts), speichert das Frontend alle Aktionen nur in der IndexedDB ab. Jede Änderung bekommt lokal das Flag `synced: false`.
-3. **Wiederverbindung (Back Online):** Sobald das Netz wieder da ist, schickt das Frontend alle Einträge mit `synced: false` per REST-Request an den Server (inklusive der alten Versionsnummer).
-
-### Konflikterkennung & Auflösung (Conflict Resolution)
-
-* **Der Server prüft die Version:** Der Server vergleicht die Version aus dem Request mit der aktuellen Version in der Datenbank.
-* **Kein Konflikt:** Stimmen die Versionen überein, übernimmt der Server die Änderung, erhöht die Versionsnummer und pusht das Update an alle WebSockets.
-* **Konfliktfall (Version Mismatch):** Stimmen die Versionen nicht überein, erkennt das Backend den Konflikt.
-* **Lösungsstrategie (Server Wins):** Für *SirBuysALot* nutzen wir einen automatischen **Server-Wins-Ansatz**, um den User im Supermarkt nicht durch Dialoge zu blockieren. Der Server lehnt das veraltete Update ab (HTTP 409) und sendet den aktuellen Server-State zurück. Das Frontend überschreibt daraufhin den lokalen Cache mit der "Server-Wahrheit".
-
----
-
-## Frontend:
-
-Für das Implementieren des Frontendes soll **Vue 3 + Vuetify** genutzt werden, da es dem Team am meisten bekannt ist und es dadurch den kleinsten lernaufwand hat. Als Build tool soll **Vite** genutzt werden. D.h. das **Vite PWA Plugin** wird genutzt, womit die App installierbar wird.
-
-**Versionen & Dokumentation:**
-
-- **Vue 3** – Version: **3.4.0**
-  
-  - Hauptdokumentation: [Vue 3 Docs](https://vuejs.org)
-  
-  - Einstieg/Guide: [Vue 3 Guide](https://vuejs.org/guide/introduction.html)
-  
-  - API Referenz: [Vue 3 API Reference](https://vuejs.org/api/)
-  
-  - Composition API: [Composition API Guide](https://vuejs.org/guide/extras/composition-api-faq.html)
-
-- **Vuetify 3** – Version: **3.7.4**
-  
-  - Hauptdokumentation: [Vuetify Docs](https://vuetifyjs.com)
-  
-  - Installation & Setup: [Vuetify Getting Started](https://vuetifyjs.com/en/getting-started/installation/)
-  
-  - Komponenten-Übersicht: [Vuetify Components](https://vuetifyjs.com/en/components/all/)
-  
-  - API-Referenz: [Vuetify API](https://vuetifyjs.com/en/api/v-app/)
-
-- **Vite** – Version: **5.4.0**
-  
-  - Hauptdokumentation: [Vite Guide](https://vitejs.dev/guide/)
-  
-  - Konfiguration: [Vite Config Reference](https://vitejs.dev/config/)
-  
-  - Build-Themen: [Vite Build Guide](https://vitejs.dev/guide/build.html)
-
-- **Vite PWA Plugin** – Version: **0.20.5**
-  
-  - Hauptdokumentation: [Vite PWA Plugin Docs](https://vite-pwa-org.netlify.app/)
-  
-  - Einstieg: [Vite PWA Getting Started](https://vite-pwa-org.netlify.app/guide/)
-  
-  - PWA-Anforderungen: [PWA Minimal Requirements](https://vite-pwa-org.netlify.app/guide/pwa-minimal-requirements.html)
-
-- **Axios** (für REST-Requests im Frontend) – Version: **1.7.9**
-  
-  - Dokumentation: [Axios Docs](https://axios-http.com/docs/intro)
-
-- **WebSocket im Frontend** (native API / optional VueUse)
-  
-  - Native WebSocket API: [WebSocket MDN](https://developer.mozilla.org/en-US/docs/Web/API/WebSocket)
-  
-  - Composable (optional): [VueUse useWebSocket](https://vueuse.org/core/useWebSocket/)
+| Attribut | Typ | Beschreibung |
+|----------|-----|--------------|
+| `id` | Integer | Auto-Inkrement (Primärschlüssel) |
+| `type` | Enum | `'create'` \| `'update'` \| `'delete'` |
+| `entity` | Enum | `'list'` \| `'product'` |
+| `entityId` | UUID | Lokale UUID des Elements |
+| `payload` | JSON | Änderungsdaten |
+| `timestamp` | Timestamp | Wann die Änderung stattfand |
+| `synced` | Boolean | `false` = muss noch synchronisiert werden |
 
 ---
 
-## Backend:
+## 3. Systemkommunikation
 
-Für die Implementation des Backendes soll **Spring Boot** genutzt werden. Für die Kommunikation zwischen frontend und backend soll für Standard-Aktionen wie z.B. "Liste erstellen" **REST-API** verwendet werden. Für das erhalten von Updates sollen **Websockets** verwendet werden, um sofortige Updates zu erhalten.
+### 3.1 Kommunikationskanäle
 
-**Versionen & Dokumentation:**
+| Kanal | Verwendung | Bibliothek |
+|-------|------------|------------|
+| **REST API** | Schreibende Operationen | Axios |
+| **WebSockets** | Echtzeit-Updates (Push) | STOMP over WebSocket |
 
-- **Java** – Version: **21 LTS**
-  
-  - Dokumentation: [Java 21 Docs](https://docs.oracle.com/en/java/javase/21/)
+### 3.2 REST-API Endpunkte
 
-- **Spring Boot** – Version: **3.2.12**
-  
-  - Hauptdokumentation: [Spring Boot Docs](https://docs.spring.io/spring-boot/index.html)
-  
-  - Referenz-Handbuch: [Spring Boot Reference](https://docs.spring.io/spring-boot/reference/)
-  
-  - REST mit Spring MVC: [Spring Boot Web (Servlet)](https://docs.spring.io/spring-boot/reference/web/servlet.html)
-  
-  - WebSockets mit Spring Boot: [Spring Boot WebSockets](https://docs.spring.io/spring-boot/reference/messaging/websockets.html)
-  
-  - WebSocket-Details: [Spring WebSocket Guide](https://docs.spring.io/spring-framework/reference/web/websocket.html)
-  
-  - STOMP-over-WebSocket: [Spring STOMP over WebSocket](https://docs.spring.io/spring-framework/reference/web/websocket/stomp.html)
+#### Listen
+| Methode | Endpunkt | Beschreibung |
+|---------|----------|--------------|
+| GET | `/api/lists` | Alle Listen abrufen |
+| GET | `/api/lists/{id}` | Einzelne Liste |
+| POST | `/api/lists` | Neue Liste erstellen |
+| PUT | `/api/lists/{id}` | Liste aktualisieren |
+| DELETE | `/api/lists/{id}` | Liste löschen |
 
-- **Spring Data JPA** (für DB-Zugriff)
-  
-  - Dokumentation: [Spring Data JPA Reference](https://docs.spring.io/spring-data/jpa/reference/)
-  
-  - Query-Methoden: [Spring Data JPA Query Methods](https://docs.spring.io/spring-data/jpa/reference/jpa/query-methods.html)
+#### Produkte
+| Methode | Endpunkt | Beschreibung |
+|---------|----------|--------------|
+| GET | `/api/lists/{id}/products` | Alle Produkte einer Liste |
+| POST | `/api/lists/{id}/products` | Produkt erstellen |
+| PUT | `/api/lists/{listId}/products/{productId}` | Produkt aktualisieren |
+| PATCH | `/api/lists/{listId}/products/{productId}/purchase` | Kauf-Status toggle |
+| DELETE | `/api/lists/{listId}/products/{productId}` | Produkt löschen |
 
----
+### 3.3 WebSocket Topics
 
-## Datenbank:
-
-Als Datenbank soll **Postgres** genutzt werden.
-
-Zum Offline Speichern soll **IndexedDB(Library : Dexie.js) oder localStorage(localForage) wenn IndexedDB aus unbekannte Gründe ausfällt** verwendet werden.
-
-**Versionen & Dokumentation:**
-
-- **PostgreSQL** – Version: **16.8**
-  
-  - Hauptdokumentation: [PostgreSQL 16 Docs](https://www.postgresql.org/docs/16/)
-  
-  - Tutorial: [PostgreSQL Tutorial](https://www.postgresql.org/docs/16/tutorial.html)
-  
-  - SQL-Befehle: [PostgreSQL SQL Commands](https://www.postgresql.org/docs/16/sql-commands.html)
-  
-  - Performance-Tipps: [PostgreSQL Performance Tips](https://www.postgresql.org/docs/16/performance-tips.html)
-
-- **Dexie.js** (IndexedDB Wrapper) – Version: **4.0.11**
-  
-  - Hauptseite: [Dexie.js](https://dexie.org/)
-  
-  - Getting Started: [Dexie Getting Started](https://dexie.org/docs/Tutorial/Getting-started)
-  
-  - Vue-Integration: [Dexie mit Vue](https://dexie.org/docs/Tutorial/Vue)
-  
-  - Tabellen & Schema: [Dexie Version.stores](https://dexie.org/docs/Version/Version.stores())
-  
-  - Tabellen-API: [Dexie Table](https://dexie.org/docs/Table/Table)
-  
-  - Abfragen & Filter: [Dexie Collection](https://dexie.org/docs/Collection/Collection)
-
-- **localForage** (Fallback für localStorage) – Version: **1.10.0**
-  
-  - Dokumentation: [localForage Docs](https://localforage.github.io/localForage/)
-  
-  - API-Referenz: [localForage API](https://localforage.github.io/localForage/#api)
-  
-  - Konfiguration: [localForage Config](https://localforage.github.io/localForage/#settings-api-config)
-
-- **IndexedDB API** (native Referenz)
-  
-  - Überblick: [IndexedDB MDN](https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API)
-  
-  - Nutzung: [Using IndexedDB](https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API/Using_IndexedDB)
-
-- **localStorage API** (native Referenz)
-  
-  - Dokumentation: [localStorage MDN](https://developer.mozilla.org/en-US/docs/Web/API/Window/localStorage)
+| Topic | Verwendung |
+|-------|------------|
+| `/topic/lists/{listId}` | Updates für eine Liste |
+| `/topic/lists/{listId}/products` | Produkt-Updates |
 
 ---
 
-## Programmierumgebung:
+## 4. Synchronisationsdesign
 
-Zum Programmieren soll **IntelliJ** verwendet werden und für das Containerisieren der Applikation soll Docker Compose genutzt werden.
+### 4.1 Datenhaltung
 
-**Versionen & Dokumentation:**
+Die App nutzt **2 Speicher**:
 
-- **IntelliJ IDEA** – Version: **2024.3**
-  
-  - Hauptdokumentation: [IntelliJ IDEA Help](https://www.jetbrains.com/help/idea/)
-  
-  - Vue-Unterstützung: [IntelliJ Vue.js Support](https://www.jetbrains.com/help/idea/vue-js.html)
-  
-  - Spring Boot-Unterstützung: [IntelliJ Spring Boot Support](https://www.jetbrains.com/help/idea/spring-boot.html)
+| Speicher | Technologie | Rolle |
+|----------|-------------|-------|
+| **Server** | PostgreSQL | Source of Truth |
+| **Client** | IndexedDB (Dexie.js) | Lokaler Cache für Offline |
 
-- **Docker Compose** – Version: **2.32.0**
-  
-  - Hauptdokumentation: [Docker Compose Docs](https://docs.docker.com/compose/)
-  
-  - Compose File Referenz: [Compose File Reference](https://docs.docker.com/compose/compose-file/)
-  
-  - CLI Referenz: [Compose CLI Reference](https://docs.docker.com/compose/reference/)
-  
-  - Networking: [Compose Networking](https://docs.docker.com/compose/networking/)
-  
-  - Multi-Container Beispiel: [Compose Getting Started](https://docs.docker.com/compose/gettingstarted/)
+### 4.2 Sync-Prinzip: Offline-First
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    CRUD-Operation (Create)                       │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+                    ┌─────────────────┐
+                    │  1. Lokal       │
+                    │  speichern      │
+                    │  (Dexie.js)     │
+                    └─────────────────┘
+                              │
+                              ▼
+                    ┌─────────────────┐
+                    │  2. UI          │
+                    │  aktualisieren  │
+                    └─────────────────┘
+                              │
+                              ▼
+                    ┌─────────────────┐
+                    │  3. Online?     │
+                    └─────────────────┘
+                      │           │
+                    Ja           Nein
+                      │           │
+                      ▼           ▼
+            ┌─────────────┐   ┌─────────────┐
+            │ API-Call    │   │ Queue       │
+            │ (Axios)     │   │ hinzufügen  │
+            └─────────────┘   └─────────────┘
+                      │           │
+                      ▼           │
+            ┌─────────────┐      │
+            │ Erfolg?     │      │
+            └─────────────┘      │
+              │        │        │
+            Ja       Nein       │
+              │        │        │
+              ▼        ▼        │
+        ┌─────────┐ ┌────────┐   │
+        │ Markiere│ │ Queue  │◀──┘
+        │ synced  │ │ add    │
+        └─────────┘ └────────┘
+```
+
+### 4.3 Online/Offline-Erkennung
+
+```typescript
+// Event-Listener
+window.addEventListener('online', handleOnline)
+window.addEventListener('offline', handleOffline)
+
+// navigator.onLine als Fallback
+if (!navigator.onLine) {
+  // Offline-Modus aktivieren
+}
+```
+
+### 4.4 Sync-Queue-Verarbeitung
+
+```typescript
+async function processQueue() {
+  // 1. Prüfe Online-Status
+  if (!navigator.onLine) return
+
+  // 2. Hole ausstehende Operationen
+  const operations = await syncService.getPendingOperations()
+
+  // 3. Verarbeite sequenziell
+  for (const op of operations) {
+    try {
+      await syncService.processOperation(op)
+      await syncService.markAsSynced(op.id)
+    } catch (error) {
+      // Fehler - bleibt in Queue für Retry
+      console.error('Sync failed:', error)
+    }
+  }
+}
+
+// Automatischer Start bei Online-Gehen
+watch(isOnline, async (online) => {
+  if (online) {
+    await processQueue()
+  }
+})
+```
+
+### 4.5 UI-Indikatoren
+
+| Indikator | Beschreibung |
+|-----------|--------------|
+| **Offline-Banner** | Zeigt "Offline-Modus" mit Pending-Count |
+| **Snackbar** | "Synchronisation abgeschlossen" nach Sync |
+| **Loading-States** | Während langer Operationen |
 
 ---
 
-## CI/CD
+## 5. Konfliktlösung
 
-Für die CI/CD soll das Actions System von Github genutzt werden.
+### 5.1 Strategie: Server Wins
 
-**Versionen & Dokumentation:**
+> **Grundsatz:** Bei Konflikten wird die Server-Version bevorzugt.
 
-- **GitHub Actions**
-  
-  - Hauptdokumentation: [GitHub Actions Docs](https://docs.github.com/en/actions)
-  
-  - Quickstart: [Actions Quickstart](https://docs.github.com/en/actions/quickstart)
-  
-  - Workflow-Syntax: [Workflow Syntax](https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions)
-  
-  - Build & Tests: [Automating Builds and Tests](https://docs.github.com/en/actions/automating-builds-and-tests)
-  
-  - Docker-Images: [Publishing Docker Images](https://docs.github.com/en/actions/publishing-packages/publishing-docker-images)
-  
-  - Deployment: [Actions Deployment](https://docs.github.com/en/actions/deployment/about-deployments)
+### 5.2 Konfliktarten
 
-- **Node.js** (für Frontend-Build in CI/CD) – Version: **22.0.0 LTS**
-  
-  - Dokumentation: [Node.js 22 Docs](https://nodejs.org/docs/latest-v22.x/api/)
+| Art | Beschreibung | Behandlung |
+|-----|--------------|------------|
+| **Version-Konflikt** | Client sendet veraltete Version | Server-State gewinnt |
+| **Gleichzeitige Edits** | Zwei Clients ändern dasselbe | Server-State gewinnt |
+| **Gelöschtes Item** | Client aktualisiert gelöschtes Item | Server ignoriert |
+| **Netzwerk-Fehler** | Timeout/Serverfehler | Retry mit Exponential Backoff |
+
+### 5.3 Ablauf bei Version-Konflikt
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                      Version-Konflikt                           │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  Client sendet: { id, version: 3, changes }                   │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  Server prüft: current.version = 5                           │
+│  Request.version = 3                                          │
+│  → VERSION MISMATCH!                                           │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  Server antwortet: HTTP 409 Conflict                          │
+│  Body: { currentState, version: 5 }                           │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  Client überschreibt lokale Daten mit Server-State             │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### 5.4 Backend-Implementierung (Spring Boot)
+
+```java
+@PutMapping("/{id}")
+public ResponseEntity<?> update(@PathVariable UUID id, 
+                               @RequestBody UpdateRequest request) {
+    Entity current = repository.findById(id)
+        .orElseThrow(() -> new NotFoundException());
+    
+    // Version prüfen
+    if (!current.getVersion().equals(request.getVersion())) {
+        // Konflikt - Server gewinnt
+        return ResponseEntity
+            .status(HttpStatus.CONFLICT)
+            .body(new ConflictResponse(current, current.getVersion()));
+    }
+    
+    // Update durchführen
+    current.setVersion(current.getVersion() + 1);
+    Entity updated = repository.save(current);
+    
+    // Push an alle Clients via WebSocket
+    messagingTemplate.convertAndSend("/topic/lists/" + id, updated);
+    
+    return ResponseEntity.ok(updated);
+}
+```
+
+### 5.5 Frontend-Konfliktbehandlung
+
+```typescript
+async function handleApiError(error, localItem) {
+  if (error.response?.status === 409) {
+    // Server gewinnt - lokale Daten überschreiben
+    const serverState = error.response.data.currentState
+    await db.items.put(serverState)
+    
+    // UI aktualisieren
+    items.value = items.value.map(item => 
+      item.id === serverState.id ? serverState : item
+    )
+    
+    // Feedback an Benutzer
+    showSnackbar('Änderung eines anderen Geräts übernommen', 'info')
+  }
+}
+```
 
 ---
 
-### Testing Tools
+## 6. Frontend
 
-Um die Stabilität und die Offline-Funktionalität (Must-Have Stories) zu gewährleisten, werden folgende Test-Frameworks eingesetzt:
+### 6.1 Stack
 
-**Frontend (Unit & Component Tests):**
+| Technologie | Version | Verwendung |
+|------------|---------|------------|
+| Vue 3 | 3.4.0 | Framework |
+| Vuetify 3 | 3.7.4 | UI-Komponenten |
+| Vite | 5.4.0 | Build Tool |
+| Vite PWA Plugin | 0.20.5 | PWA-Funktionalität |
+| Axios | 1.7.9 | HTTP-Client |
+| Dexie.js | 4.0.11 | IndexedDB Wrapper |
 
-* **Vitest** – Version: **2.1.0** [Vitest Docs](https://vitest.dev/)
+### 6.2 Projektstruktur
 
-* **Vue Test Utils** – Version: **2.4.0** [Vue Test Utils](https://test-utils.vuejs.org/)
+```
+frontend/src/
+├── App.vue                    # Root-Komponente
+├── main.ts                    # App-Initialisierung
+├── composables/
+│   ├── useShoppingLists.ts   # Listen-CRUD + Offline
+│   ├── useProducts.ts        # Produkt-CRUD + Offline
+│   ├── useOnlineStatus.ts    # Online/Offline-Erkennung
+│   └── useUser.ts            # Benutzerverwaltung
+├── services/
+│   ├── api.ts               # Axios-Instanz
+│   ├── listService.ts       # REST-Aufrufe Listen
+│   ├── productService.ts    # REST-Aufrufe Produkte
+│   └── syncService.ts      # Queue-Management
+├── db/
+│   └── index.ts             # Dexie.js Datenbank
+├── views/
+│   ├── HomeView.vue         # Listenübersicht
+│   ├── ListView.vue         # Produkte einer Liste
+│   └── JoinView.vue         # Liste beitreten
+├── plugins/
+│   └── vuetify.ts          # Vuetify-Konfiguration
+├── router/
+│   └── index.ts             # Vue Router
+├── types/
+│   └── index.ts             # TypeScript-Typen
+└── tests/
+    ├── setup.ts            # Test-Setup
+    ├── offline.test.ts      # Offline-Tests
+    └── useOnlineStatus.test.ts
+```
 
-**Backend (Unit Tests):**
+### 6.3 Wichtige Composables
 
-* **JUnit 5** (in Spring Boot Starter Test enthalten) [JUnit 5 User Guide](https://junit.org/junit5/docs/current/user-guide/)
+#### useShoppingLists
+```typescript
+// Verwendet: db.shoppingLists, syncService, listService
+// Funktionen: fetchLists, createList, updateList, removeList
+```
 
-**End-to-End (E2E) & UI-Testing:**
+#### useProducts
+```typescript
+// Verwendet: db.products, syncService, productService
+// Funktionen: fetchProducts, addProduct, updateProduct, togglePurchase, removeProduct
+```
 
-* **Playwright**  [Playwright Docs](https://playwright.dev/)
+#### useOnlineStatus
+```typescript
+// Refs: isOnline (boolean), pendingSyncCount (number)
+// Funktionen: updatePendingCount(), triggerSync()
+```
 
 ---
 
-## Synchronisationsdesign
+## 7. Backend
 
-### Datenhaltung (Data Persistence)
+### 7.1 Stack
 
-Die App nutzt 2 Storages ( Lokal und Auf dem Server):
+| Technologie | Version | Verwendung |
+|------------|---------|------------|
+| Java | 21 LTS | Sprache |
+| Spring Boot | 3.2.12 | Framework |
+| Spring Data JPA | - | Datenbank-Zugriff |
+| Spring WebSocket | - | Echtzeit-Updates |
+| PostgreSQL | 16.8 | Datenbank |
+| H2 | - | Entwicklung (In-Memory) |
 
-1. **Server-Side:** PostgreSQL als "Source of Truth".
-2. **Client-Side:** **Dexie.js (IndexedDB)** als lokaler Cache. Alle Nutzeraktionen werden primär in die lokale Datenbank geschrieben, um Latenzfreiheit und Offline-Betrieb zu garantieren.
+### 7.2 Projektstruktur
 
-### Synchronisationsansatz (Sync-Logik)
+```
+backend/src/main/java/at/tgm/sirbuysalot/
+├── SirBuysALotApplication.java
+├── controller/
+│   ├── ListController.java
+│   └── ProductController.java
+├── service/
+│   ├── ListService.java
+│   └── ProductService.java
+├── repository/
+│   ├── ListRepository.java
+│   └── ProductRepository.java
+├── model/
+│   ├── ShoppingList.java
+│   ├── Product.java
+│   └── dto/
+│       ├── CreateListRequest.java
+│       └── UpdateListRequest.java
+├── config/
+│   └── WebSocketConfig.java
+└── exception/
+    ├── NotFoundException.java
+    └── ConflictException.java
+```
 
-Wir nutzen einen **Hybrid-Ansatz** aus REST (für Aktionen) und WebSockets (für Updates).
+---
 
-**Ablauf der Synchronisation:**
+## 8. Datenbank
 
-* **Online-Modus:** Änderungen werden per REST an den Server gesendet. Bei Erfolg verteilt der Server die Updates über WebSockets an alle anderen Clients.
-* **Offline-Modus:** Die PWA erkennt Verbindungsverluste (auch Timeouts). Änderungen werden lokal in Dexie.js mit `synced: false` markiert.
-* **Re-Synchronisation (Back Online):** Die App pusht alle lokalen Änderungen per REST-Batch an das Backend.
-* **Konfliktlösung:** Alle konkurrierenden Änderungen werden serverseitig erkannt. Im Konfliktfall wird die Server-Version bevorzugt (**Server Wins**), und der Client aktualisiert seinen lokalen Zustand automatisch auf den Stand des Servers, um Konsistenz zu gewährleisten.
+### 8.1 PostgreSQL Schema
+
+```sql
+-- ShoppingLists
+CREATE TABLE shopping_lists (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(255) NOT NULL,
+    access_code VARCHAR(50),
+    version INTEGER NOT NULL DEFAULT 1,
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    deleted_at TIMESTAMP
+);
+
+-- Products
+CREATE TABLE products (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    list_id UUID NOT NULL REFERENCES shopping_lists(id),
+    name VARCHAR(255) NOT NULL,
+    price DECIMAL(10,2),
+    purchased BOOLEAN NOT NULL DEFAULT FALSE,
+    purchased_by VARCHAR(255),
+    purchased_at TIMESTAMP,
+    position INTEGER NOT NULL DEFAULT 0,
+    version INTEGER NOT NULL DEFAULT 1,
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    deleted_at TIMESTAMP
+);
+
+-- Tags
+CREATE TABLE tags (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(255) NOT NULL,
+    list_id UUID NOT NULL REFERENCES shopping_lists(id)
+);
+
+-- ProductTags (M2M)
+CREATE TABLE product_tags (
+    product_id UUID NOT NULL REFERENCES products(id),
+    tag_id UUID NOT NULL REFERENCES tags(id),
+    PRIMARY KEY (product_id, tag_id)
+);
+```
+
+### 8.2 IndexedDB Schema (Dexie.js)
+
+```typescript
+// Database: 'sirbuysalot'
+{
+  shoppingLists: {
+    keyPath: 'id',
+    indexes: ['name', 'accessCode', 'lastModified']
+  },
+  products: {
+    keyPath: 'id',
+    indexes: ['listId', 'name', 'purchased', 'lastModified']
+  },
+  tags: {
+    keyPath: 'id',
+    indexes: ['name', 'listId']
+  },
+  productTags: {
+    keyPath: ['productId', 'tagId'],
+    indexes: ['productId', 'tagId']
+  },
+  syncQueue: {
+    keyPath: 'id',
+    indexes: ['entity', 'entityId', 'timestamp']
+  }
+}
+```
+
+---
+
+## 9. Programmierumgebung
+
+| Tool | Version | Verwendung |
+|------|---------|------------|
+| IntelliJ IDEA | 2024.3 | IDE |
+| Docker Compose | 2.32.0 | Container |
+| Node.js | 22.0.0 LTS | Frontend-Build |
+
+### 9.1 Starten der Entwicklung
+
+```bash
+# Backend (mit H2 für Entwicklung)
+cd backend
+$env:JAVA_HOME = "C:\Program Files\Java\jdk-21"
+.\mvnw.cmd spring-boot:run
+
+# Frontend
+cd frontend
+npm install
+npm run dev
+
+# Docker (PostgreSQL + Backend)
+docker compose up -d
+```
+
+---
+
+## 10. CI/CD & Testing
+
+### 10.1 GitHub Actions Workflows
+
+| Workflow | Trigger | Jobs |
+|----------|---------|------|
+| `ci.yml` | Push/PR | Build, Unit Tests, Typecheck |
+| `e2e.yml` | PR | Playwright E2E Tests |
+| `deploy.yml` | Push auf main | Build & Deploy |
+
+### 10.2 Test-Stack
+
+| Ebene | Framework | Dateien |
+|-------|-----------|---------|
+| Unit | Vitest | `src/tests/*.test.ts` |
+| Component | Vue Test Utils | `src/tests/*.test.ts` |
+| E2E | Playwright | `tests/e2e/*.spec.ts` |
+| Backend | JUnit 5 | `backend/src/test/` |
+
+### 10.3 Testbefehle
+
+```bash
+# Frontend
+npm test              # Unit Tests
+npm run test:watch    # Watch Mode
+npm run typecheck     # TypeScript Check
+npm run build         # Production Build
+
+# Backend
+cd backend
+.\mvnw.cmd test      # Unit Tests
+.\mvnw.cmd verify     # Integration Tests
+```
+
+---
+
+## Glossar
+
+| Begriff | Bedeutung |
+|--------|----------|
+| **PWA** | Progressive Web App - installierbare Webanwendung |
+| **Source of Truth** | Autoritative Datenquelle (PostgreSQL) |
+| **Offline-First** | Lokale Speicherung VOR Server-Kommunikation |
+| **Soft-Delete** | Logisches Löschen via `deletedAt`-Timestamp |
+| **Server Wins** | Konfliktlösungsstrategie bei Versionskonflikten |
+| **Dexie.js** | IndexedDB Wrapper für einfachere Datenbank-Operationen |
+| **STOMP** | Simple Text Oriented Messaging Protocol (WebSocket) |
+
+---
+
+## Literatur & Links
+
+| Thema | Link |
+|-------|------|
+| Vue 3 Docs | https://vuejs.org |
+| Vuetify | https://vuetifyjs.com |
+| Dexie.js | https://dexie.org |
+| Spring Boot | https://spring.io/projects/spring-boot |
+| PostgreSQL | https://www.postgresql.org |
+| Vitest | https://vitest.dev |
+| Playwright | https://playwright.dev |
