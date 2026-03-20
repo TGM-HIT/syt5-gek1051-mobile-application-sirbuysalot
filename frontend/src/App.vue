@@ -109,13 +109,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, provide, reactive, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, provide, reactive, watch } from 'vue'
 import { useUser } from '@/composables/useUser'
 import { useOnlineStatus, initOnlineStatus } from '@/composables/useOnlineStatus'
-import { syncService } from '@/services/syncService'
+import { useShoppingLists } from '@/composables/useShoppingLists'
 
 const { displayName, isLoggedIn, setDisplayName } = useUser()
 const { isOnline, pendingSyncCount, updatePendingCount } = useOnlineStatus()
+const { syncPendingLists } = useShoppingLists()
 
 initOnlineStatus()
 
@@ -144,7 +145,7 @@ function showSnackbar(text: string, color = 'success', icon = 'mdi-check-circle'
 provide('showSnackbar', showSnackbar)
 
 async function triggerSync() {
-  await syncService.processQueue()
+  await syncPendingLists()
   await updatePendingCount()
   showSnackbar('Synchronisation abgeschlossen', 'success', 'mdi-check-circle')
 }
@@ -162,6 +163,11 @@ onMounted(async () => {
     nameInput.value = displayName()
   }
   await updatePendingCount()
+  window.addEventListener('online', syncPendingLists)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('online', syncPendingLists)
 })
 
 function saveName() {

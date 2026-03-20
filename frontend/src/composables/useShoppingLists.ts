@@ -1,7 +1,7 @@
 import { ref } from 'vue'
 import { listService } from '@/services/listService'
 import { syncService } from '@/services/syncService'
-import { db, type ShoppingList as DbShoppingList } from '@/db'
+import { db } from '@/db'
 import type { ShoppingList } from '@/types'
 
 const lists = ref<ShoppingList[]>([])
@@ -10,6 +10,20 @@ const error = ref<string | null>(null)
 
 function generateUUID(): string {
   return crypto.randomUUID()
+}
+
+function toApiList(local: any): ShoppingList {
+  return {
+    id: local.id!,
+    name: local.name,
+    accessCode: local.accessCode ?? null,
+    createdAt: local.createdAt,
+    updatedAt: local.updatedAt,
+    deletedAt: local.deletedAt ?? null,
+    version: local.version,
+    products: [],
+    users: [],
+  }
 }
 
 export function useShoppingLists() {
@@ -28,39 +42,18 @@ export function useShoppingLists() {
             accessCode: list.accessCode ?? undefined,
             createdAt: list.createdAt,
             updatedAt: list.updatedAt,
-            lastModified: list.updatedAt,
             version: list.version,
             synced: true,
           })
         }
       } else {
         const localLists = await db.shoppingLists.toArray()
-        lists.value = localLists.map((l) => ({
-          id: l.id!,
-          name: l.name,
-          accessCode: l.accessCode ?? null,
-          createdAt: l.createdAt,
-          updatedAt: l.updatedAt,
-          deletedAt: l.deletedAt ?? null,
-          version: l.version,
-          products: [],
-          users: [],
-        }))
+        lists.value = localLists.map(toApiList)
       }
     } catch (e: any) {
       const localLists = await db.shoppingLists.toArray()
       if (localLists.length > 0) {
-        lists.value = localLists.map((l) => ({
-          id: l.id!,
-          name: l.name,
-          accessCode: l.accessCode ?? null,
-          createdAt: l.createdAt,
-          updatedAt: l.updatedAt,
-          deletedAt: l.deletedAt ?? null,
-          version: l.version,
-          products: [],
-          users: [],
-        }))
+        lists.value = localLists.map(toApiList)
       } else {
         error.value = e.message ?? 'Fehler beim Laden der Listen'
       }
@@ -69,67 +62,74 @@ export function useShoppingLists() {
     }
   }
 
-  async function createList(name: string) {
+  async function createList(name: string): Promise<ShoppingList> {
+    const id = generateUUID()
     const now = new Date().toISOString()
-    const tempId = generateUUID()
 
-    const localList: DbShoppingList = {
-      id: tempId,
+    await db.shoppingLists.add({
+      id,
       name,
       createdAt: now,
       updatedAt: now,
-      lastModified: now,
-      version: 0,
+      version: 1,
       synced: false,
-    }
+    })
 
-    await db.shoppingLists.add(localList)
-    lists.value.unshift({
-      id: tempId,
+    const localList: ShoppingList = {
+      id,
       name,
       accessCode: null,
       createdAt: now,
       updatedAt: now,
       deletedAt: null,
-      version: 0,
+      version: 1,
       products: [],
       users: [],
-    })
+    }
+    lists.value.unshift(localList)
 
     if (navigator.onLine) {
       try {
-        const created = await listService.create({ name })
-        await db.shoppingLists.update(tempId, {
-          id: created.id,
-          version: created.version,
+        const created = await listService.create({ name, id })
+        await db.shoppingLists.update(id, {
+          accessCode: created.accessCode ?? undefined,
           synced: true,
         })
-        const idx = lists.value.findIndex((l) => l.id === tempId)
-        if (idx !== -1) lists.value[idx] = { ...lists.value[idx], id: created.id, version: created.version }
+        const idx = lists.value.findIndex((l) => l.id === id)
+        if (idx !== -1) lists.value[idx] = created
         return created
-      } catch (e) {
-        await syncService.addToQueue('create', 'list', tempId, { name })
+      } catch {
+        await syncService.addToQueue('create', 'list', id, { name })
       }
     } else {
-      await syncService.addToQueue('create', 'list', tempId, { name })
+      await syncService.addToQueue('create', 'list', id, { name })
     }
 
-    return lists.value.find((l) => l.id === tempId)
+    return localList
+  }
+
+  async function syncPendingLists(): Promise<void> {
+    const unsynced = await db.shoppingLists.filter((l: any) => !l.synced && !l.deletedAt).toArray()
+    for (const local of unsynced) {
+      try {
+        const created = await listService.create({ name: local.name, id: local.id })
+        await db.shoppingLists.update(local.id!, { synced: true })
+        const idx = lists.value.findIndex((l) => l.id === local.id)
+        if (idx !== -1) lists.value[idx] = { ...lists.value[idx], ...created, id: local.id! }
+      } catch {
+        // Wird beim nächsten Reconnect erneut versucht
+      }
+    }
   }
 
   async function updateList(id: string, payload: Partial<ShoppingList>) {
     const now = new Date().toISOString()
-    const localList = await db.shoppingLists.get(id)
-
-    if (localList) {
-      const updateData: Partial<DbShoppingList> = {
-        lastModified: now,
-        synced: false,
-      }
-      if (payload.name !== undefined) updateData.name = payload.name
-      if (payload.accessCode !== undefined) updateData.accessCode = payload.accessCode ?? undefined
-      await db.shoppingLists.update(id, updateData)
-    }
+    
+    await db.shoppingLists.update(id, {
+      name: payload.name,
+      accessCode: payload.accessCode,
+      synced: false,
+    })
 
     const idx = lists.value.findIndex((l) => l.id === id)
     if (idx !== -1) {
@@ -143,7 +143,7 @@ export function useShoppingLists() {
         const idx2 = lists.value.findIndex((l) => l.id === id)
         if (idx2 !== -1) lists.value[idx2] = { ...lists.value[idx2], version: updated.version }
         return updated
-      } catch (e) {
+      } catch {
         await syncService.addToQueue('update', 'list', id, payload)
       }
     } else {
@@ -160,7 +160,7 @@ export function useShoppingLists() {
     if (navigator.onLine) {
       try {
         await listService.remove(id)
-      } catch (e) {
+      } catch {
         await syncService.addToQueue('delete', 'list', id, {})
       }
     } else {
@@ -176,5 +176,6 @@ export function useShoppingLists() {
     createList,
     updateList,
     removeList,
+    syncPendingLists,
   }
 }

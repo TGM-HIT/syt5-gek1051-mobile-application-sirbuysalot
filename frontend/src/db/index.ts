@@ -6,7 +6,7 @@ export interface ShoppingList {
   accessCode?: string
   createdAt: string
   updatedAt: string
-  lastModified: string
+  lastModified?: string
   deletedAt?: string
   version: number
   synced: boolean
@@ -23,7 +23,7 @@ export interface Product {
   position: number
   createdAt: string
   updatedAt: string
-  lastModified: string
+  lastModified?: string
   deletedAt?: string
   version: number
   synced: boolean
