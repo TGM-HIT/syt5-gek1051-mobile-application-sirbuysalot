@@ -8,9 +8,17 @@ vi.mock('@/db', () => ({
     shoppingLists: {
       add: vi.fn().mockResolvedValue('mock-id'),
       put: vi.fn().mockResolvedValue('mock-id'),
+      delete: vi.fn().mockResolvedValue(undefined),
       update: vi.fn().mockResolvedValue(1),
+      clear: vi.fn().mockResolvedValue(undefined),
+      toArray: vi.fn().mockResolvedValue([]),
       filter: vi.fn().mockReturnValue({
         toArray: vi.fn().mockResolvedValue([]),
+      }),
+      where: vi.fn().mockReturnValue({
+        equals: vi.fn().mockReturnValue({
+          toArray: vi.fn().mockResolvedValue([]),
+        }),
       }),
     },
   },
@@ -22,6 +30,14 @@ vi.mock('@/services/listService', () => ({
     create: vi.fn(),
     update: vi.fn(),
     remove: vi.fn(),
+  },
+}))
+
+vi.mock('@/services/syncService', () => ({
+  syncService: {
+    addToQueue: vi.fn().mockResolvedValue(undefined),
+    getPendingCount: vi.fn().mockResolvedValue(0),
+    processQueue: vi.fn().mockResolvedValue(undefined),
   },
 }))
 

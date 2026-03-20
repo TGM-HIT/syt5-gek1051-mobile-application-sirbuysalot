@@ -5,13 +5,19 @@ vi.mock('@/db', () => ({
   db: {
     products: {
       put: vi.fn().mockResolvedValue(undefined),
+      add: vi.fn().mockResolvedValue(undefined),
       update: vi.fn().mockResolvedValue(undefined),
+      delete: vi.fn().mockResolvedValue(undefined),
       where: vi.fn().mockReturnValue({
         equals: vi.fn().mockReturnValue({
+          toArray: vi.fn().mockResolvedValue([]),
           filter: vi.fn().mockReturnValue({
             toArray: vi.fn().mockResolvedValue([]),
           }),
         }),
+      }),
+      filter: vi.fn().mockReturnValue({
+        toArray: vi.fn().mockResolvedValue([]),
       }),
     },
   },
@@ -29,6 +35,15 @@ vi.mock('@/services/productService', () => ({
     update: vi.fn(),
     togglePurchase: mockTogglePurchase,
     remove: vi.fn(),
+  },
+}))
+
+// Mock syncService
+vi.mock('@/services/syncService', () => ({
+  syncService: {
+    addToQueue: vi.fn().mockResolvedValue(undefined),
+    getPendingCount: vi.fn().mockResolvedValue(0),
+    processQueue: vi.fn().mockResolvedValue(undefined),
   },
 }))
 
@@ -85,7 +100,7 @@ describe('useProducts – togglePurchase', () => {
     await promise
   })
 
-  it('saves to Dexie with synced: false before API call', async () => {
+  it('updates Dexie with synced: false before API call', async () => {
     mockTogglePurchase.mockResolvedValue(makeProduct({ purchased: true }))
 
     const { products, togglePurchase } = useProducts(LIST_ID)
@@ -93,7 +108,8 @@ describe('useProducts – togglePurchase', () => {
 
     await togglePurchase('prod-1', 'Julian')
 
-    expect(db.products.put).toHaveBeenCalledWith(
+    expect(db.products.update).toHaveBeenCalledWith(
+      'prod-1',
       expect.objectContaining({ purchased: true, synced: false }),
     )
   })
@@ -163,14 +179,14 @@ describe('useProducts – fetchProducts (offline fallback)', () => {
       synced: true,
     }
 
-    const mockWhere = vi.fn().mockReturnValue({
+    vi.mocked(db.products.where).mockReturnValue({
       equals: vi.fn().mockReturnValue({
+        toArray: vi.fn().mockResolvedValue([cachedProduct]),
         filter: vi.fn().mockReturnValue({
           toArray: vi.fn().mockResolvedValue([cachedProduct]),
         }),
       }),
-    })
-    vi.mocked(db.products).where = mockWhere
+    } as any)
 
     const { products, fetchProducts } = useProducts(LIST_ID)
     await fetchProducts()
