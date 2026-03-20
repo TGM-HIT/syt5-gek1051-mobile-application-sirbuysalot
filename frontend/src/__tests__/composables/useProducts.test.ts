@@ -3,6 +3,35 @@ import { useProducts } from '@/composables/useProducts'
 import { productService } from '@/services/productService'
 import type { Product } from '@/types'
 
+vi.mock('@/db', () => ({
+  db: {
+    products: {
+      put: vi.fn().mockResolvedValue(undefined),
+      update: vi.fn().mockResolvedValue(undefined),
+      where: vi.fn().mockReturnValue({
+        equals: vi.fn().mockReturnValue({
+          filter: vi.fn().mockReturnValue({
+            toArray: vi.fn().mockResolvedValue([]),
+          }),
+        }),
+      }),
+    },
+    productTags: {
+      where: vi.fn().mockReturnValue({
+        equals: vi.fn().mockReturnValue({
+          toArray: vi.fn().mockResolvedValue([]),
+          delete: vi.fn().mockResolvedValue(undefined),
+        }),
+      }),
+      put: vi.fn().mockResolvedValue(undefined),
+    },
+    tags: {
+      put: vi.fn().mockResolvedValue(undefined),
+      get: vi.fn().mockResolvedValue(undefined),
+    },
+  },
+}))
+
 vi.mock('@/services/productService', () => ({
   productService: {
     getAll: vi.fn(),
@@ -48,13 +77,13 @@ describe('useProducts', () => {
     expect(products.value).toEqual(mockProducts)
   })
 
-  it('fetchProducts sets error on failure', async () => {
+  it('fetchProducts sets error on failure when cache is empty', async () => {
     vi.mocked(productService.getAll).mockRejectedValue(new Error('Failed'))
 
     const { error, fetchProducts } = useProducts(listId)
     await fetchProducts()
 
-    expect(error.value).toBe('Failed')
+    expect(error.value).toBe('Offline – keine gecachten Daten verfügbar')
   })
 
   it('fetchProducts sets loading state', async () => {

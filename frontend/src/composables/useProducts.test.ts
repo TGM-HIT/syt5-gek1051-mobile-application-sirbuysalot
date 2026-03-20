@@ -15,18 +15,29 @@ vi.mock('@/db', () => ({
         }),
       }),
     },
+    productTags: {
+      where: vi.fn().mockReturnValue({
+        equals: vi.fn().mockReturnValue({
+          toArray: vi.fn().mockResolvedValue([]),
+          delete: vi.fn().mockResolvedValue(undefined),
+        }),
+      }),
+      put: vi.fn().mockResolvedValue(undefined),
+    },
+    tags: {
+      put: vi.fn().mockResolvedValue(undefined),
+      get: vi.fn().mockResolvedValue(undefined),
+    },
   },
 }))
 
 // Mock productService
-const mockTogglePurchase = vi.fn()
-const mockGetAll = vi.fn()
 vi.mock('@/services/productService', () => ({
   productService: {
-    getAll: mockGetAll,
+    getAll: vi.fn(),
     create: vi.fn(),
     update: vi.fn(),
-    togglePurchase: mockTogglePurchase,
+    togglePurchase: vi.fn(),
     remove: vi.fn(),
   },
 }))
@@ -43,6 +54,7 @@ vi.mock('vue', async (importOriginal) => {
 
 import { useProducts } from './useProducts'
 import { db } from '@/db'
+import { productService } from '@/services/productService'
 
 const LIST_ID = 'list-1'
 
@@ -70,7 +82,7 @@ describe('useProducts – togglePurchase', () => {
   })
 
   it('does an optimistic update immediately before the API call resolves', async () => {
-    mockTogglePurchase.mockResolvedValue(makeProduct({ purchased: true, purchasedBy: 'Julian', purchasedAt: '2024-01-01T10:00:00' }))
+    vi.mocked(productService.togglePurchase).mockResolvedValue(makeProduct({ purchased: true, purchasedBy: 'Julian', purchasedAt: '2024-01-01T10:00:00' }))
 
     const { products, togglePurchase } = useProducts(LIST_ID)
     products.value = [makeProduct()]
@@ -85,7 +97,7 @@ describe('useProducts – togglePurchase', () => {
   })
 
   it('saves to Dexie with synced: false before API call', async () => {
-    mockTogglePurchase.mockResolvedValue(makeProduct({ purchased: true }))
+    vi.mocked(productService.togglePurchase).mockResolvedValue(makeProduct({ purchased: true }))
 
     const { products, togglePurchase } = useProducts(LIST_ID)
     products.value = [makeProduct()]
@@ -99,7 +111,7 @@ describe('useProducts – togglePurchase', () => {
 
   it('marks synced: true in Dexie after successful API call', async () => {
     const serverProduct = makeProduct({ purchased: true, purchasedBy: 'Julian', version: 2 })
-    mockTogglePurchase.mockResolvedValue(serverProduct)
+    vi.mocked(productService.togglePurchase).mockResolvedValue(serverProduct)
 
     const { products, togglePurchase } = useProducts(LIST_ID)
     products.value = [makeProduct()]
@@ -113,7 +125,7 @@ describe('useProducts – togglePurchase', () => {
   })
 
   it('keeps optimistic state when API fails (offline mode)', async () => {
-    mockTogglePurchase.mockRejectedValue(new Error('Network error'))
+    vi.mocked(productService.togglePurchase).mockRejectedValue(new Error('Network error'))
 
     const { products, togglePurchase } = useProducts(LIST_ID)
     products.value = [makeProduct()]
@@ -130,7 +142,7 @@ describe('useProducts – togglePurchase', () => {
   })
 
   it('toggles back to not purchased on second tap', async () => {
-    mockTogglePurchase.mockResolvedValue(makeProduct({ purchased: false, purchasedBy: null }))
+    vi.mocked(productService.togglePurchase).mockResolvedValue(makeProduct({ purchased: false, purchasedBy: null }))
 
     const { products, togglePurchase } = useProducts(LIST_ID)
     products.value = [makeProduct({ purchased: true, purchasedBy: 'Julian' })]
@@ -148,7 +160,7 @@ describe('useProducts – fetchProducts (offline fallback)', () => {
   })
 
   it('loads from Dexie when API call fails', async () => {
-    mockGetAll.mockRejectedValue(new Error('Network error'))
+    vi.mocked(productService.getAll).mockRejectedValue(new Error('Network error'))
 
     const cachedProduct = {
       id: 'prod-1',

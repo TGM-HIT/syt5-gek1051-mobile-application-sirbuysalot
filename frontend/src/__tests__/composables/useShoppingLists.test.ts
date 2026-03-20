@@ -3,6 +3,19 @@ import { useShoppingLists } from '@/composables/useShoppingLists'
 import { listService } from '@/services/listService'
 import type { ShoppingList } from '@/types'
 
+vi.mock('@/db', () => ({
+  db: {
+    shoppingLists: {
+      add: vi.fn().mockResolvedValue('mock-id'),
+      update: vi.fn().mockResolvedValue(1),
+      put: vi.fn().mockResolvedValue('mock-id'),
+      filter: vi.fn().mockReturnValue({
+        toArray: vi.fn().mockResolvedValue([]),
+      }),
+    },
+  },
+}))
+
 vi.mock('@/services/listService', () => ({
   listService: {
     getAll: vi.fn(),
@@ -65,7 +78,7 @@ describe('useShoppingLists', () => {
     const { error, fetchLists } = useShoppingLists()
     await fetchLists()
 
-    expect(error.value).toBe('Network error')
+    expect(error.value).toBe('Keine Verbindung zum Server')
   })
 
   it('createList prepends to the list', async () => {
@@ -75,7 +88,7 @@ describe('useShoppingLists', () => {
     const { lists, createList } = useShoppingLists()
     const result = await createList('New List')
 
-    expect(listService.create).toHaveBeenCalledWith({ name: 'New List' })
+    expect(listService.create).toHaveBeenCalledWith(expect.objectContaining({ name: 'New List' }))
     expect(result).toEqual(created)
     expect(lists.value[0]).toEqual(created)
   })

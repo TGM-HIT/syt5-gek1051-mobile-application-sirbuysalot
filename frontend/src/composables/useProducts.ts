@@ -84,7 +84,7 @@ export function useProducts(listId: string) {
       }
       products.value = productsWithTags
       if (cached.length === 0) {
-        error.value = 'Offline - keine gecachten Daten verfuegbar'
+        error.value = 'Offline – keine gecachten Daten verfügbar'
       }
     } finally {
       loading.value = false
