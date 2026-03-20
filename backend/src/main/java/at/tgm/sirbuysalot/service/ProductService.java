@@ -1,5 +1,6 @@
 package at.tgm.sirbuysalot.service;
 
+import at.tgm.sirbuysalot.exception.ConflictException;
 import at.tgm.sirbuysalot.model.Product;
 import at.tgm.sirbuysalot.model.ShoppingList;
 import at.tgm.sirbuysalot.model.Tag;
@@ -42,6 +43,12 @@ public class ProductService {
     public Product update(UUID id, Product updated) {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Product not found"));
+
+        // Version conflict check: client must send the version it based changes on
+        if (updated.getVersion() > 0 && updated.getVersion() < product.getVersion()) {
+            throw new ConflictException("Produkt", product.getVersion(), updated.getVersion());
+        }
+
         product.setName(updated.getName());
         product.setPrice(updated.getPrice());
         product.setVersion(product.getVersion() + 1);
