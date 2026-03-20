@@ -1,6 +1,7 @@
 package at.tgm.sirbuysalot.controller;
 
 import at.tgm.sirbuysalot.model.Tag;
+import at.tgm.sirbuysalot.model.TagDTO;
 import at.tgm.sirbuysalot.service.TagService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -8,6 +9,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/lists/{listId}/tags")
@@ -17,18 +19,23 @@ public class TagController {
     private final TagService service;
 
     @GetMapping
-    public ResponseEntity<List<Tag>> getAll(@PathVariable UUID listId) {
-        return ResponseEntity.ok(service.findByListId(listId));
+    public ResponseEntity<List<TagDTO>> getAll(@PathVariable UUID listId) {
+        List<TagDTO> tags = service.findByListId(listId).stream()
+                .map(TagDTO::fromEntity)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(tags);
     }
 
     @PostMapping
-    public ResponseEntity<Tag> create(@PathVariable UUID listId, @RequestBody Tag tag) {
-        return ResponseEntity.ok(service.create(listId, tag));
+    public ResponseEntity<TagDTO> create(@PathVariable UUID listId, @RequestBody Tag tag) {
+        Tag created = service.create(listId, tag);
+        return ResponseEntity.ok(TagDTO.fromEntity(created));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Tag> update(@PathVariable UUID id, @RequestBody Tag tag) {
-        return ResponseEntity.ok(service.update(id, tag));
+    public ResponseEntity<TagDTO> update(@PathVariable UUID id, @RequestBody Tag tag) {
+        Tag updated = service.update(id, tag);
+        return ResponseEntity.ok(TagDTO.fromEntity(updated));
     }
 
     @DeleteMapping("/{id}")
