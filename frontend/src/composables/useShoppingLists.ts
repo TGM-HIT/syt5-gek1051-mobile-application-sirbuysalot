@@ -3,6 +3,7 @@ import { listService } from '@/services/listService'
 import type { ShoppingList } from '@/types'
 
 const lists = ref<ShoppingList[]>([])
+const deletedLists = ref<ShoppingList[]>([])
 const loading = ref(false)
 const error = ref<string | null>(null)
 
@@ -37,13 +38,31 @@ export function useShoppingLists() {
     lists.value = lists.value.filter((l) => l.id !== id)
   }
 
+  async function fetchDeletedLists() {
+    try {
+      deletedLists.value = await listService.getDeleted()
+    } catch (e: any) {
+      error.value = e.message ?? 'Fehler beim Laden der geloeschten Listen'
+    }
+  }
+
+  async function restoreList(id: string) {
+    const restored = await listService.restore(id)
+    deletedLists.value = deletedLists.value.filter((l) => l.id !== id)
+    lists.value.unshift(restored)
+    return restored
+  }
+
   return {
     lists,
+    deletedLists,
     loading,
     error,
     fetchLists,
     createList,
     updateList,
     removeList,
+    fetchDeletedLists,
+    restoreList,
   }
 }

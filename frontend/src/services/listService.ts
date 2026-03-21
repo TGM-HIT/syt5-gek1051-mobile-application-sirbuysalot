@@ -30,4 +30,14 @@ export const listService = {
     const { data } = await api.get<ShoppingList>(`/lists/join/${code}`)
     return data
   },
+
+  async getDeleted(): Promise<ShoppingList[]> {
+    const { data } = await api.get<ShoppingList[]>('/lists/deleted')
+    return data
+  },
+
+  async restore(id: string): Promise<ShoppingList> {
+    const { data } = await api.patch<ShoppingList>(`/lists/${id}/restore`)
+    return data
+  },
 }

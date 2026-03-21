@@ -49,4 +49,16 @@ public class ShoppingListService {
         list.setDeletedAt(LocalDateTime.now());
         repository.save(list);
     }
+
+    public List<ShoppingList> findDeleted() {
+        return repository.findByDeletedAtIsNotNull();
+    }
+
+    public ShoppingList restore(UUID id) {
+        ShoppingList list = repository.findById(id)
+                .orElseThrow(() -> new RuntimeException("List not found"));
+        list.setDeletedAt(null);
+        list.setVersion(list.getVersion() + 1);
+        return repository.save(list);
+    }
 }
