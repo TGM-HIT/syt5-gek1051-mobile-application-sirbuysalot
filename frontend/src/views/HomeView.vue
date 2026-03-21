@@ -63,6 +63,54 @@
           </v-card>
         </transition-group>
 
+        <!-- Deleted lists toggle -->
+        <div class="d-flex align-center mt-6 mb-3">
+          <v-switch
+            v-model="showDeleted"
+            label="Geloeschte Listen anzeigen"
+            density="compact"
+            hide-details
+            color="warning"
+            @update:model-value="(val: boolean) => val && fetchDeletedLists()"
+          />
+        </div>
+
+        <!-- Deleted lists -->
+        <template v-if="showDeleted">
+          <v-card
+            v-for="list in deletedLists"
+            :key="list.id"
+            class="mb-3"
+            border
+            variant="outlined"
+            color="grey"
+          >
+            <div class="d-flex align-center pa-4">
+              <v-avatar color="grey" variant="tonal" size="48" class="mr-4">
+                <v-icon icon="mdi-delete-outline" />
+              </v-avatar>
+              <div class="flex-grow-1">
+                <div class="text-subtitle-1 font-weight-bold text-medium-emphasis text-decoration-line-through">
+                  {{ list.name }}
+                </div>
+              </div>
+              <v-btn
+                color="success"
+                variant="tonal"
+                size="small"
+                prepend-icon="mdi-restore"
+                @click="onRestoreList(list)"
+              >
+                Wiederherstellen
+              </v-btn>
+            </div>
+          </v-card>
+
+          <v-card v-if="deletedLists.length === 0" class="pa-6 text-center" border variant="outlined">
+            <div class="text-body-2 text-medium-emphasis">Keine geloeschten Listen vorhanden.</div>
+          </v-card>
+        </template>
+
         <!-- Empty state -->
         <v-card v-if="!loading && lists.length === 0" class="pa-8 text-center" border>
           <v-icon icon="mdi-cart-off" size="80" color="grey-lighten-1" class="mb-4" />
@@ -190,7 +238,7 @@ import type { ShoppingList } from '@/types'
 
 const router = useRouter()
 const showSnackbar = inject<(text: string, color?: string, icon?: string) => void>('showSnackbar')!
-const { lists, loading, error, fetchLists, createList, updateList, removeList } = useShoppingLists()
+const { lists, deletedLists, loading, error, fetchLists, createList, updateList, removeList, fetchDeletedLists, restoreList } = useShoppingLists()
 
 const showCreate = ref(false)
 const newListName = ref('')
@@ -203,6 +251,7 @@ const updating = ref(false)
 
 const showDeleteConfirm = ref(false)
 const deleteTarget = ref<ShoppingList | null>(null)
+const showDeleted = ref(false)
 
 onMounted(() => {
   fetchLists()
@@ -234,6 +283,15 @@ function openEditDialog(list: ShoppingList) {
 function confirmDeleteList(list: ShoppingList) {
   deleteTarget.value = list
   showDeleteConfirm.value = true
+}
+
+async function onRestoreList(list: ShoppingList) {
+  try {
+    await restoreList(list.id)
+    showSnackbar(`"${list.name}" wiederhergestellt`, 'success', 'mdi-restore')
+  } catch {
+    error.value = 'Fehler beim Wiederherstellen'
+  }
 }
 
 async function onDeleteList() {
