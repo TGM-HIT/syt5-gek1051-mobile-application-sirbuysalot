@@ -46,6 +46,16 @@ public class ShoppingListController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    @GetMapping("/deleted")
+    public ResponseEntity<List<ShoppingList>> getDeleted() {
+        return ResponseEntity.ok(service.findDeleted());
+    }
+
+    @PatchMapping("/{id}/restore")
+    public ResponseEntity<ShoppingList> restore(@PathVariable UUID id) {
+        return ResponseEntity.ok(service.restore(id));
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         service.softDelete(id);
