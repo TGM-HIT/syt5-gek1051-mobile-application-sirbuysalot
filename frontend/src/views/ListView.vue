@@ -79,6 +79,28 @@
           />
         </v-card>
 
+        <!-- Cost summary -->
+        <v-card v-if="totalCost > 0" class="mb-5 pa-4" border>
+          <div class="d-flex align-center mb-2">
+            <v-icon icon="mdi-cash-register" color="primary" class="mr-2" />
+            <span class="text-body-2 font-weight-medium">Kosten</span>
+          </div>
+          <div class="d-flex justify-space-between align-center">
+            <div>
+              <div class="text-caption text-medium-emphasis">Gekauft</div>
+              <div class="text-body-1 font-weight-bold text-success">{{ formatPrice(purchasedCost) }}</div>
+            </div>
+            <div class="text-center">
+              <div class="text-caption text-medium-emphasis">Offen</div>
+              <div class="text-body-1 font-weight-bold text-warning">{{ formatPrice(remainingCost) }}</div>
+            </div>
+            <div class="text-right">
+              <div class="text-caption text-medium-emphasis">Gesamt</div>
+              <div class="text-body-1 font-weight-bold text-primary">{{ formatPrice(totalCost) }}</div>
+            </div>
+          </div>
+        </v-card>
+
         <!-- Search bar -->
         <v-text-field
           v-model="searchQuery"
@@ -405,6 +427,20 @@ const progressPercent = computed(() => {
   if (products.value.length === 0) return 0
   return Math.round((purchasedCount.value / products.value.length) * 100)
 })
+
+const totalCost = computed(() => {
+  return products.value
+    .filter((p) => p.price != null)
+    .reduce((sum, p) => sum + (p.price ?? 0), 0)
+})
+
+const purchasedCost = computed(() => {
+  return products.value
+    .filter((p) => p.purchased && p.price != null)
+    .reduce((sum, p) => sum + (p.price ?? 0), 0)
+})
+
+const remainingCost = computed(() => totalCost.value - purchasedCost.value)
 
 const filteredProducts = computed(() => {
   let result = products.value
