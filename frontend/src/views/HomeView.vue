@@ -51,6 +51,13 @@
                 color="grey"
                 @click.prevent="openEditDialog(list)"
               />
+              <v-btn
+                icon="mdi-delete-outline"
+                variant="text"
+                size="small"
+                color="error"
+                @click.prevent="confirmDeleteList(list)"
+              />
               <v-icon icon="mdi-chevron-right" color="grey" />
             </div>
           </v-card>
@@ -118,6 +125,27 @@
       </v-card>
     </v-dialog>
 
+    <!-- Delete confirmation dialog -->
+    <v-dialog v-model="showDeleteConfirm" max-width="400">
+      <v-card class="pa-2">
+        <v-card-title class="text-h6 font-weight-bold pt-4 px-6">
+          <v-icon icon="mdi-delete-alert" color="error" class="mr-2" />
+          Liste loeschen?
+        </v-card-title>
+        <v-card-text class="px-6">
+          <p class="text-body-2">
+            Soll die Liste <strong>"{{ deleteTarget?.name }}"</strong> wirklich geloescht werden?
+            Die Liste kann spaeter wiederhergestellt werden.
+          </p>
+        </v-card-text>
+        <v-card-actions class="px-6 pb-4">
+          <v-spacer />
+          <v-btn variant="text" @click="showDeleteConfirm = false">Abbrechen</v-btn>
+          <v-btn color="error" prepend-icon="mdi-delete" @click="onDeleteList">Loeschen</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
     <!-- Edit dialog -->
     <v-dialog v-model="showEdit" max-width="440">
       <v-card class="pa-2">
@@ -162,7 +190,7 @@ import type { ShoppingList } from '@/types'
 
 const router = useRouter()
 const showSnackbar = inject<(text: string, color?: string, icon?: string) => void>('showSnackbar')!
-const { lists, loading, error, fetchLists, createList, updateList } = useShoppingLists()
+const { lists, loading, error, fetchLists, createList, updateList, removeList } = useShoppingLists()
 
 const showCreate = ref(false)
 const newListName = ref('')
@@ -172,6 +200,9 @@ const showEdit = ref(false)
 const editListName = ref('')
 const editListId = ref('')
 const updating = ref(false)
+
+const showDeleteConfirm = ref(false)
+const deleteTarget = ref<ShoppingList | null>(null)
 
 onMounted(() => {
   fetchLists()
@@ -198,6 +229,23 @@ function openEditDialog(list: ShoppingList) {
   editListId.value = list.id
   editListName.value = list.name
   showEdit.value = true
+}
+
+function confirmDeleteList(list: ShoppingList) {
+  deleteTarget.value = list
+  showDeleteConfirm.value = true
+}
+
+async function onDeleteList() {
+  if (!deleteTarget.value) return
+  try {
+    await removeList(deleteTarget.value.id)
+    showDeleteConfirm.value = false
+    showSnackbar(`"${deleteTarget.value.name}" geloescht`, 'success', 'mdi-delete-check')
+    deleteTarget.value = null
+  } catch {
+    error.value = 'Fehler beim Loeschen der Liste'
+  }
 }
 
 async function onUpdateList() {
