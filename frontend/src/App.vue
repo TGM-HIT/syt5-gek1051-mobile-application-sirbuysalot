@@ -15,6 +15,14 @@
 
       <template #append>
         <v-btn
+          :icon="isDark ? 'mdi-weather-night' : 'mdi-weather-sunny'"
+          variant="text"
+          color="white"
+          size="small"
+          class="mr-1"
+          @click="toggleDarkMode"
+        />
+        <v-btn
           v-if="!isLoggedIn()"
           variant="outlined"
           color="white"
@@ -99,9 +107,11 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, provide, reactive } from 'vue'
 import { useUser } from '@/composables/useUser'
+import { useDarkMode } from '@/composables/useDarkMode'
 import OfflineBanner from '@/components/OfflineBanner.vue'
 
 const { displayName, isLoggedIn, setDisplayName } = useUser()
+const { isDark, toggle: toggleDarkMode } = useDarkMode()
 
 const showNameDialog = ref(false)
 const nameInput = ref('')
