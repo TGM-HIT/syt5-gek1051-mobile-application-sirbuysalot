@@ -35,4 +35,8 @@ export const productService = {
     const { data } = await api.patch<Product>(`/lists/${listId}/products/${productId}/restore`)
     return data
   },
+
+  async reorder(listId: string, order: { id: string; position: number }[]): Promise<void> {
+    await api.patch(`/lists/${listId}/products/reorder`, order)
+  },
 }
