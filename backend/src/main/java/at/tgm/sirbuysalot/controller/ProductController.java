@@ -57,6 +57,12 @@ public class ProductController {
         return ResponseEntity.ok(service.setTags(id, uuids));
     }
 
+    @PatchMapping("/reorder")
+    public ResponseEntity<Void> reorder(@PathVariable UUID listId, @RequestBody List<Map<String, Object>> order) {
+        service.reorder(listId, order);
+        return ResponseEntity.ok().build();
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         service.softDelete(id);
