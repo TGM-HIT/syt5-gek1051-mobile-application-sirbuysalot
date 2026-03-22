@@ -152,10 +152,16 @@
         </v-alert>
 
         <!-- Product list -->
-        <transition-group name="product" tag="div">
+        <draggable
+          v-model="draggableProducts"
+          item-key="id"
+          handle=".drag-handle"
+          animation="200"
+          ghost-class="drag-ghost"
+          @end="onDragEnd"
+        >
+          <template #item="{ element: product }">
           <v-card
-            v-for="product in sortedProducts"
-            :key="product.id"
             class="mb-3 product-card"
             :class="{ 'product-purchased': product.purchased }"
             border
@@ -230,9 +236,19 @@
                 class="ml-1"
                 @click.stop="confirmDelete(product)"
               />
+
+              <!-- Drag handle -->
+              <v-icon
+                icon="mdi-drag"
+                class="ml-1 drag-handle"
+                color="grey"
+                size="small"
+                @click.stop
+              />
             </div>
           </v-card>
-        </transition-group>
+          </template>
+        </draggable>
 
         <!-- Deleted products toggle -->
         <div class="d-flex align-center mb-3 mt-4">
@@ -390,9 +406,11 @@ import { useRoute } from 'vue-router'
 import { useProducts } from '@/composables/useProducts'
 import { useUser } from '@/composables/useUser'
 import { listService } from '@/services/listService'
+import { productService } from '@/services/productService'
 import ProductEditDialog from '@/components/ProductEditDialog.vue'
 import TagManagementDialog from '@/components/TagManagementDialog.vue'
 import { useTags } from '@/composables/useTags'
+import draggable from 'vuedraggable'
 import type { Product } from '@/types'
 
 const route = useRoute()
@@ -469,8 +487,18 @@ const sortedProducts = computed(() => {
   return [...filteredProducts.value].sort((a, b) => {
     if (a.purchased && !b.purchased) return 1
     if (!a.purchased && b.purchased) return -1
-    return 0
+    return (a.position ?? 0) - (b.position ?? 0)
   })
+})
+
+const draggableProducts = computed({
+  get: () => sortedProducts.value,
+  set: (val: Product[]) => {
+    val.forEach((p, idx) => {
+      const original = products.value.find((o) => o.id === p.id)
+      if (original) original.position = idx
+    })
+  },
 })
 
 const shareUrl = computed(() => {
@@ -588,6 +616,15 @@ async function onDeleteProduct() {
   }
 }
 
+async function onDragEnd() {
+  const order = products.value.map((p, idx) => ({ id: p.id, position: idx }))
+  try {
+    await productService.reorder(listId, order)
+  } catch {
+    // Position persist failed, local order still applies
+  }
+}
+
 function formatPrice(price: number): string {
   return new Intl.NumberFormat('de-AT', { style: 'currency', currency: 'EUR' }).format(price)
 }
@@ -623,16 +660,16 @@ function formatTime(dateStr: string | null): string {
   transform: scale(1.1);
 }
 
-.product-enter-active,
-.product-leave-active {
-  transition: all 0.3s ease;
+.drag-handle {
+  cursor: grab;
+  touch-action: none;
 }
-.product-enter-from {
-  opacity: 0;
-  transform: translateY(-10px);
+.drag-handle:active {
+  cursor: grabbing;
 }
-.product-leave-to {
-  opacity: 0;
-  transform: translateX(30px);
+.drag-ghost {
+  opacity: 0.4;
+  background: rgb(var(--v-theme-primary));
+  border-radius: 8px;
 }
 </style>

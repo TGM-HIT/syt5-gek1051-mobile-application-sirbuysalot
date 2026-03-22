@@ -100,6 +100,18 @@ public class ProductService {
         return saved;
     }
 
+    public void reorder(UUID listId, List<Map<String, Object>> order) {
+        for (Map<String, Object> item : order) {
+            UUID id = UUID.fromString((String) item.get("id"));
+            int position = ((Number) item.get("position")).intValue();
+            productRepository.findById(id).ifPresent(product -> {
+                product.setPosition(position);
+                productRepository.save(product);
+            });
+        }
+        broadcastChange(listId, "products_reordered", Map.of("listId", listId));
+    }
+
     private void broadcastChange(UUID listId, String changeType, Object data) {
         messagingTemplate.convertAndSend("/topic/lists/" + listId, Map.of(
                 "type", changeType,
