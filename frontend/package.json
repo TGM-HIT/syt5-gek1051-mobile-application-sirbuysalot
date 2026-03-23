@@ -20,7 +20,8 @@
     "axios": "^1.7.9",
     "dexie": "^4.0.11",
     "vuedraggable": "^4.1.0",
-    "sortablejs": "^1.15.3"
+    "sortablejs": "^1.15.3",
+    "peerjs": "^1.5.4"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.0.0",
