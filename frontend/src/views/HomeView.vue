@@ -45,6 +45,13 @@
               </div>
 
               <v-btn
+                icon="mdi-content-copy"
+                variant="text"
+                size="small"
+                color="grey"
+                @click.prevent="onDuplicateList(list)"
+              />
+              <v-btn
                 icon="mdi-pencil"
                 variant="text"
                 size="small"
@@ -238,7 +245,7 @@ import type { ShoppingList } from '@/types'
 
 const router = useRouter()
 const showSnackbar = inject<(text: string, color?: string, icon?: string) => void>('showSnackbar')!
-const { lists, deletedLists, loading, error, fetchLists, createList, updateList, removeList, fetchDeletedLists, restoreList } = useShoppingLists()
+const { lists, deletedLists, loading, error, fetchLists, createList, updateList, removeList, fetchDeletedLists, restoreList, duplicateList } = useShoppingLists()
 
 const showCreate = ref(false)
 const newListName = ref('')
@@ -278,6 +285,15 @@ function openEditDialog(list: ShoppingList) {
   editListId.value = list.id
   editListName.value = list.name
   showEdit.value = true
+}
+
+async function onDuplicateList(list: ShoppingList) {
+  try {
+    const copy = await duplicateList(list.id)
+    showSnackbar(`"${list.name}" dupliziert`, 'success', 'mdi-content-copy')
+  } catch {
+    error.value = 'Fehler beim Duplizieren'
+  }
 }
 
 function confirmDeleteList(list: ShoppingList) {

@@ -40,4 +40,9 @@ export const listService = {
     const { data } = await api.patch<ShoppingList>(`/lists/${id}/restore`)
     return data
   },
+
+  async duplicate(id: string): Promise<ShoppingList> {
+    const { data } = await api.post<ShoppingList>(`/lists/${id}/duplicate`)
+    return data
+  },
 }
