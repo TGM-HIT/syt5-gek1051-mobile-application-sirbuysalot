@@ -1,6 +1,8 @@
 package at.tgm.sirbuysalot.service;
 
+import at.tgm.sirbuysalot.model.Product;
 import at.tgm.sirbuysalot.model.ShoppingList;
+import at.tgm.sirbuysalot.repository.ProductRepository;
 import at.tgm.sirbuysalot.repository.ShoppingListRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -15,6 +17,7 @@ import java.util.UUID;
 public class ShoppingListService {
 
     private final ShoppingListRepository repository;
+    private final ProductRepository productRepository;
 
     public List<ShoppingList> findAll() {
         return repository.findByDeletedAtIsNull();
@@ -60,5 +63,29 @@ public class ShoppingListService {
         list.setDeletedAt(null);
         list.setVersion(list.getVersion() + 1);
         return repository.save(list);
+    }
+
+    public ShoppingList duplicate(UUID id) {
+        ShoppingList original = repository.findById(id)
+                .orElseThrow(() -> new RuntimeException("List not found"));
+
+        ShoppingList copy = new ShoppingList();
+        copy.setName(original.getName() + " (Kopie)");
+        copy.setAccessCode(UUID.randomUUID().toString().substring(0, 8));
+        ShoppingList saved = repository.save(copy);
+
+        List<Product> originalProducts = productRepository
+                .findByShoppingListIdAndDeletedAtIsNull(id);
+
+        for (Product p : originalProducts) {
+            Product newProduct = new Product();
+            newProduct.setName(p.getName());
+            newProduct.setPrice(p.getPrice());
+            newProduct.setPosition(p.getPosition());
+            newProduct.setShoppingList(saved);
+            productRepository.save(newProduct);
+        }
+
+        return saved;
     }
 }

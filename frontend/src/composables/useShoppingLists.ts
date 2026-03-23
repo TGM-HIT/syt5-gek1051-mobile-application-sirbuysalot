@@ -53,6 +53,12 @@ export function useShoppingLists() {
     return restored
   }
 
+  async function duplicateList(id: string) {
+    const duplicated = await listService.duplicate(id)
+    lists.value.unshift(duplicated)
+    return duplicated
+  }
+
   return {
     lists,
     deletedLists,
@@ -64,5 +70,6 @@ export function useShoppingLists() {
     removeList,
     fetchDeletedLists,
     restoreList,
+    duplicateList,
   }
 }
