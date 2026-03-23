@@ -56,6 +56,11 @@ public class ShoppingListController {
         return ResponseEntity.ok(service.restore(id));
     }
 
+    @PostMapping("/{id}/duplicate")
+    public ResponseEntity<ShoppingList> duplicate(@PathVariable UUID id) {
+        return ResponseEntity.ok(service.duplicate(id));
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         service.softDelete(id);
