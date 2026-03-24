@@ -1,6 +1,101 @@
 # Techstack - SirBuysALot
 
-*dies ist die erste Planung von der Technologie mit der SirBuysALot umgesetzt werden soll, d.h es ist nicht finalisiert und neue oder veränderte Inhalte können vorkommen*
+*dies ist noch die Planung von der Technologie mit der SirBuysALot umgesetzt werden soll, d.h. es ist nicht finalisiert und neue oder veränderte Inhalte können vorkommen*
+
+## Architektur Big-Picture & Systemlandschaft
+
+Das folgende Diagramm veranschaulicht das Zusammenspiel der Komponenten, die Kommunikation und die Datenhaltung in der *SirBuysALot*-Architektur:
+
+```text
+      [ MOBILE / BROWSER CLIENT ]                                 [ BACKEND SERVER ]
++-------------------------------------+                  +-----------------------------------+
+|             Vue 3 PWA               |                  |       Spring Boot (Java 21)       |
+|                                     |                  |                                   |
+|  +-------------------------------+  |   1. REST API    |  +-----------------------------+  |
+|  |       State Management        |  |  (Alle Schreib-  |  |      REST Controllers       |  |
+|  |      (Vue Refs / Stores)      |  |-- Operationen) ->|  |  (Auth, Listen, Konflikte)  |  |
+|  +-------------------------------+  |                  |  +-----------------------------+  |
+|          ^               |          |<-----------------|                 |                 |
+|          | (Reactivity)  | (Write)  |                  |                 |                 |
+|          v               v          |                  |                 v                 |
+|  +-------------------------------+  |  2. WebSockets   |  +-----------------------------+  |
+|  |     Lokaler Datenspeicher     |  |<- (Echtzeit   ---|  |     WebSocket / STOMP       |  |
+|  |  IndexedDB (via Dexie.js)     |  |    Updates)      |  |  (Push-Events an Clients)   |  |
+|  +-------------------------------+  |                  |  +-----------------------------+  |
+|          ^               ^          |                  |                 |                 |
+|          |               |          |                  |                 |                 |
++----------|---------------|----------+                  +-----------------|-----------------+
+           |               |                                               |
+      (Offline)        (Online)                                            v
+           |               |                             +-----------------------------------+
+      +---------+     +---------+                        |          PostgreSQL 16 DB         |
+      | UX Fall |     | UX Fall |                        |  +-----------------------------+  |
+      | (Lokal) |     | (Sync)  |                        |  | Relational : Users, Lists   |  |
+      +---------+     +---------+                        |  | JSONB      : Item-Metadata  |  |
+                                                         |  +-----------------------------+  |
+                                                         +-----------------------------------+
+```
+
+---
+
+## Aussehen eines Einkaufslisten-Items
+
+Damit die Synchronisation sinnvoll und funktionsfähig ist, soll ein Item der Einkaufsliste folgendermaßen aussehen: 
+
+| **Attribut**       | **Typ**     | **Speicherort**     | **Beschreibung**                                                             |
+| ------------------ | ----------- | ------------------- | ---------------------------------------------------------------------------- |
+| `id`               | UUID        | Lokal & Server      | Eindeutiger Identifikator (vom Client generiert, um Duplikate zu vermeiden). |
+| `listId`           | UUID        | Lokal & Server      | Fremdschlüssel zur zugehörigen Liste.                                        |
+| `name`             | String      | Lokal & Server      | Name des Produkts (z.B. "Milch").                                            |
+| `amount`           | String      | Lokal & Server      | Menge/Einheit (z.B. "2 Packungen").                                          |
+| `isDone`           | Boolean     | Lokal & Server      | Status (abgehakt oder nicht).                                                |
+| **`version`**      | **Integer** | **Server (Master)** | **Zentraler Zähler für Konflikterkennung.**                                  |
+| **`lastModified`** | Timestamp   | Lokal & Server      | Zeitstempel der letzten Änderung.                                            |
+| `synced`           | Boolean     | Nur Lokal           | Flag: `true` = identisch mit Server, `false` = muss noch gepusht werden.     |
+
+Für Tags (Kategorien/Gruppen eines Produkts) wird eine M2M Tabelle benötigt welche die UUID der Kategorie, mit der UUID des Produktes veknüpft wird.
+
+| Attribut    | Typ  | Speicherort    | Beschreibung              |
+| ----------- | ---- | -------------- | ------------------------- |
+| `produktId` | UUID | Lokal & Server | UUID des Produktes        |
+| `tagId`     | UUID | Lokal & Server | UUID der Kategorie/Gruppe |
+
+Dafür wird folgendes Tag gebraucht:
+
+| Attribut | Typ    | Speicherort    | Beschreibung                                 |
+| -------- | ------ | -------------- | -------------------------------------------- |
+| `id`     | UUID   | Lokal & Server | Eindeutiger Identifikator des Tags           |
+| `tag`    | String | Lokal & Server | Der Name der Kategorie (z.B. "Milchprodukt") |
+
+
+
+---
+
+## Systemkommunikation: Wie die Geräte miteinander sprechen
+
+Um eine nahtlose User-Experience zu garantieren, läuft die Kommunikation zweigleisig:
+
+1. **REST API (Axios):** Wird für **alle schreibenden und verbindlichen Anfragen** genutzt (Login, initiale Listen laden, Senden von Änderungen, Sync-Batch). Dies ermöglicht eine direkte Rückmeldung (z.B. HTTP 409 bei Versionskonflikten).
+2. **WebSockets (STOMP):** Wird für den **reaktiven Live-Empfang** genutzt. Wenn ein Client eine Änderung via REST erfolgreich durchgeführt hat, pusht der Server dieses Event an alle anderen betroffenen Clients, um deren UI in Echtzeit zu aktualisieren.
+
+---
+
+## Konsistenzwahrung & Offline-Szenarien (Sync-Logik)
+
+### Die Lösung: Lokaler Cache & Versioning
+
+1. **Datensatz-Versionierung:** Jede Einkaufsliste und jedes Item erhält in der PostgreSQL-Datenbank ein Feld `version` (Integer).
+2. **Lokaler Fallback (Dexie.js):** Geht das Gerät offline (Erkennung via `navigator.onLine` oder API-Timeouts), speichert das Frontend alle Aktionen nur in der IndexedDB ab. Jede Änderung bekommt lokal das Flag `synced: false`.
+3. **Wiederverbindung (Back Online):** Sobald das Netz wieder da ist, schickt das Frontend alle Einträge mit `synced: false` per REST-Request an den Server (inklusive der alten Versionsnummer).
+
+### Konflikterkennung & Auflösung (Conflict Resolution)
+
+* **Der Server prüft die Version:** Der Server vergleicht die Version aus dem Request mit der aktuellen Version in der Datenbank.
+* **Kein Konflikt:** Stimmen die Versionen überein, übernimmt der Server die Änderung, erhöht die Versionsnummer und pusht das Update an alle WebSockets.
+* **Konfliktfall (Version Mismatch):** Stimmen die Versionen nicht überein, erkennt das Backend den Konflikt.
+* **Lösungsstrategie (Server Wins):** Für *SirBuysALot* nutzen wir einen automatischen **Server-Wins-Ansatz**, um den User im Supermarkt nicht durch Dialoge zu blockieren. Der Server lehnt das veraltete Update ab (HTTP 409) und sendet den aktuellen Server-State zurück. Das Frontend überschreibt daraufhin den lokalen Cache mit der "Server-Wahrheit".
+
+---
 
 ## Frontend:
 
@@ -58,7 +153,7 @@ Für das Implementieren des Frontendes soll **Vue 3 + Vuetify** genutzt werden, 
 
 ## Backend:
 
-Für die Implementation des Backendes soll **Spring Boot** genutzt werden. Für die Kommunikation zwischen frontend und backend soll für Standard-Aktionen wie z.B. "Liste erstellen" **REST-API** verwendet werden. für Sachen die für Echtzeit Synchronisation wichtig ist (Produkt hinzufügen, Produkt Markieren) sollen **WebSockets** genutzt werden.
+Für die Implementation des Backendes soll **Spring Boot** genutzt werden. Für die Kommunikation zwischen frontend und backend soll für Standard-Aktionen wie z.B. "Liste erstellen" **REST-API** verwendet werden. Für das erhalten von Updates sollen **Websockets** verwendet werden, um sofortige Updates zu erhalten.
 
 **Versionen & Dokumentation:**
 
@@ -225,22 +320,11 @@ Die App nutzt 2 Storages ( Lokal und Auf dem Server):
 
 ### Synchronisationsansatz (Sync-Logik)
 
-Wir nutzen einen **Reactivity-First-Ansatz** mit WebSockets für Echtzeit-Updates und REST für Initial-Loads.
+Wir nutzen einen **Hybrid-Ansatz** aus REST (für Aktionen) und WebSockets (für Updates).
 
 **Ablauf der Synchronisation:**
 
-* **Online-Modus:**  Änderungen (z.B. Produkt abhaken) werden per an den Server gesendet.
-
-* Der Server verteilt die Änderung an alle anderen verbundenen Clients der Liste.
-
-* **Offline-Modus:**
-
-* Die PWA erkennt den Verbindungsverlust via `navigator.onLine`.
-
-* Änderungen werden mit einem Flag `synced: false` und einem `timestamp` in **Dexie.js** markiert.
-
-* **Re-Synchronisation (Back Online):**
-
-* Sobald die Verbindung wiederhergestellt ist, pusht die App alle lokalen Änderungen mit `synced: false` per REST-Batch-Request an das Backend.
-
-* **Konfliktlösung:** Es gilt das Prinzip **"First-Write-Wins"** basierend auf dem Client-Zeitstempel. Der Rest der danach kommt bekommt Benachrichtigung dasses z.B. schon jemand vor dir abgehakt hat
+* **Online-Modus:** Änderungen werden per REST an den Server gesendet. Bei Erfolg verteilt der Server die Updates über WebSockets an alle anderen Clients.
+* **Offline-Modus:** Die PWA erkennt Verbindungsverluste (auch Timeouts). Änderungen werden lokal in Dexie.js mit `synced: false` markiert.
+* **Re-Synchronisation (Back Online):** Die App pusht alle lokalen Änderungen per REST-Batch an das Backend.
+* **Konfliktlösung:** Alle konkurrierenden Änderungen werden serverseitig erkannt. Im Konfliktfall wird die Server-Version bevorzugt (**Server Wins**), und der Client aktualisiert seinen lokalen Zustand automatisch auf den Stand des Servers, um Konsistenz zu gewährleisten.
