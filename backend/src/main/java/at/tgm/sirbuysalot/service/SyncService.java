@@ -72,7 +72,7 @@ public class SyncService {
                 Product product = new Product();
                 product.setName((String) payload.get("name"));
                 if (payload.get("price") != null) {
-                    product.setPrice(((Number) payload.get("price")).doubleValue());
+                    product.setPrice(java.math.BigDecimal.valueOf(((Number) payload.get("price")).doubleValue()));
                 }
                 product.setShoppingList(list);
                 productRepository.save(product);
@@ -83,7 +83,7 @@ public class SyncService {
                         .orElseThrow(() -> new RuntimeException("Product not found"));
                 if (payload.containsKey("name")) product.setName((String) payload.get("name"));
                 if (payload.containsKey("price") && payload.get("price") != null) {
-                    product.setPrice(((Number) payload.get("price")).doubleValue());
+                    product.setPrice(java.math.BigDecimal.valueOf(((Number) payload.get("price")).doubleValue()));
                 }
                 product.setVersion(product.getVersion() + 1);
                 productRepository.save(product);
