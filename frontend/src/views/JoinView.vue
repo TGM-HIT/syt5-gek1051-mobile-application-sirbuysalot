@@ -68,13 +68,11 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import { listService } from '@/services/listService'
+import { useRoute } from 'vue-router'
 import { userService } from '@/services/userService'
 import { useUser } from '@/composables/useUser'
 
 const route = useRoute()
-const router = useRouter()
 const accessCode = route.params.code as string
 const { setDisplayName, displayName, isLoggedIn } = useUser()
 

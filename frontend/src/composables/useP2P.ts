@@ -8,7 +8,7 @@ export function useP2P(listId: string, onRemoteChange?: (data: any) => void) {
     p2pService.init(listId)
 
     if (onRemoteChange) {
-      unsubscribe = p2pService.onMessage((rawData, _peerId) => {
+      unsubscribe = p2pService.onMessage((rawData) => {
         try {
           const data = typeof rawData === 'string' ? JSON.parse(rawData) : rawData
           onRemoteChange(data)
