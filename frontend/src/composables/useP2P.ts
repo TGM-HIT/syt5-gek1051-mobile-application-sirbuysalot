@@ -25,6 +25,7 @@ export function useP2P(listId: string, onRemoteChange?: (data: any) => void) {
   })
 
   function broadcast(type: string, payload: any) {
+    if (!p2pService.connected.value) return
     p2pService.send({ type, payload, timestamp: Date.now() })
   }
 
