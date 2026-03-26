@@ -35,8 +35,30 @@ public class ShoppingListController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<ShoppingList> update(@PathVariable UUID id, @RequestBody ShoppingList list) {
+    public ResponseEntity<ShoppingList> update(@PathVariable UUID id, @Valid @RequestBody ShoppingList list) {
         return ResponseEntity.ok(service.update(id, list));
+    }
+
+    @GetMapping("/join/{accessCode}")
+    public ResponseEntity<ShoppingList> joinByCode(@PathVariable String accessCode) {
+        return service.findByAccessCode(accessCode)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    @GetMapping("/deleted")
+    public ResponseEntity<List<ShoppingList>> getDeleted() {
+        return ResponseEntity.ok(service.findDeleted());
+    }
+
+    @PatchMapping("/{id}/restore")
+    public ResponseEntity<ShoppingList> restore(@PathVariable UUID id) {
+        return ResponseEntity.ok(service.restore(id));
+    }
+
+    @PostMapping("/{id}/duplicate")
+    public ResponseEntity<ShoppingList> duplicate(@PathVariable UUID id) {
+        return ResponseEntity.ok(service.duplicate(id));
     }
 
     @DeleteMapping("/{id}")

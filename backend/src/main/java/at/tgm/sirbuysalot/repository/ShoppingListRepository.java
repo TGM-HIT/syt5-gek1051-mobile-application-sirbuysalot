@@ -11,5 +11,7 @@ public interface ShoppingListRepository extends JpaRepository<ShoppingList, UUID
 
     List<ShoppingList> findByDeletedAtIsNull();
 
+    List<ShoppingList> findByDeletedAtIsNotNull();
+
     Optional<ShoppingList> findByAccessCode(String accessCode);
 }
