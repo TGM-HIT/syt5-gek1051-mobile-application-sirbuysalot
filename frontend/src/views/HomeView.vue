@@ -44,10 +44,79 @@
                 </div>
               </div>
 
+              <v-btn
+                icon="mdi-content-copy"
+                variant="text"
+                size="small"
+                color="grey"
+                @click.prevent="onDuplicateList(list)"
+              />
+              <v-btn
+                icon="mdi-pencil"
+                variant="text"
+                size="small"
+                color="grey"
+                @click.prevent="openEditDialog(list)"
+              />
+              <v-btn
+                icon="mdi-delete-outline"
+                variant="text"
+                size="small"
+                color="error"
+                @click.prevent="confirmDeleteList(list)"
+              />
               <v-icon icon="mdi-chevron-right" color="grey" />
             </div>
           </v-card>
         </transition-group>
+
+        <!-- Deleted lists toggle -->
+        <div class="d-flex align-center mt-6 mb-3">
+          <v-switch
+            v-model="showDeleted"
+            label="Geloeschte Listen anzeigen"
+            density="compact"
+            hide-details
+            color="warning"
+            @update:model-value="(val: boolean) => val && fetchDeletedLists()"
+          />
+        </div>
+
+        <!-- Deleted lists -->
+        <template v-if="showDeleted">
+          <v-card
+            v-for="list in deletedLists"
+            :key="list.id"
+            class="mb-3"
+            border
+            variant="outlined"
+            color="grey"
+          >
+            <div class="d-flex align-center pa-4">
+              <v-avatar color="grey" variant="tonal" size="48" class="mr-4">
+                <v-icon icon="mdi-delete-outline" />
+              </v-avatar>
+              <div class="flex-grow-1">
+                <div class="text-subtitle-1 font-weight-bold text-medium-emphasis text-decoration-line-through">
+                  {{ list.name }}
+                </div>
+              </div>
+              <v-btn
+                color="success"
+                variant="tonal"
+                size="small"
+                prepend-icon="mdi-restore"
+                @click="onRestoreList(list)"
+              >
+                Wiederherstellen
+              </v-btn>
+            </div>
+          </v-card>
+
+          <v-card v-if="deletedLists.length === 0" class="pa-6 text-center" border variant="outlined">
+            <div class="text-body-2 text-medium-emphasis">Keine geloeschten Listen vorhanden.</div>
+          </v-card>
+        </template>
 
         <!-- Empty state -->
         <v-card v-if="!loading && lists.length === 0" class="pa-8 text-center" border>
@@ -110,6 +179,61 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
+
+    <!-- Delete confirmation dialog -->
+    <v-dialog v-model="showDeleteConfirm" max-width="400">
+      <v-card class="pa-2">
+        <v-card-title class="text-h6 font-weight-bold pt-4 px-6">
+          <v-icon icon="mdi-delete-alert" color="error" class="mr-2" />
+          Liste loeschen?
+        </v-card-title>
+        <v-card-text class="px-6">
+          <p class="text-body-2">
+            Soll die Liste <strong>"{{ deleteTarget?.name }}"</strong> wirklich geloescht werden?
+            Die Liste kann spaeter wiederhergestellt werden.
+          </p>
+        </v-card-text>
+        <v-card-actions class="px-6 pb-4">
+          <v-spacer />
+          <v-btn variant="text" @click="showDeleteConfirm = false">Abbrechen</v-btn>
+          <v-btn color="error" prepend-icon="mdi-delete" @click="onDeleteList">Loeschen</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <!-- Edit dialog -->
+    <v-dialog v-model="showEdit" max-width="440">
+      <v-card class="pa-2">
+        <v-card-title class="text-h5 font-weight-bold pt-4 px-6">
+          <v-icon icon="mdi-pencil" color="primary" class="mr-2" />
+          Liste umbenennen
+        </v-card-title>
+        <v-card-text class="px-6">
+          <v-text-field
+            v-model="editListName"
+            label="Neuer Name"
+            prepend-inner-icon="mdi-format-list-bulleted"
+            autofocus
+            hide-details="auto"
+            :rules="[v => !!v.trim() || 'Name darf nicht leer sein']"
+            @keyup.enter="onUpdateList"
+          />
+        </v-card-text>
+        <v-card-actions class="px-6 pb-4">
+          <v-spacer />
+          <v-btn variant="text" @click="showEdit = false">Abbrechen</v-btn>
+          <v-btn
+            color="primary"
+            :disabled="!editListName.trim()"
+            :loading="updating"
+            prepend-icon="mdi-check"
+            @click="onUpdateList"
+          >
+            Speichern
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </v-container>
 </template>
 
@@ -117,14 +241,24 @@
 import { ref, inject, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useShoppingLists } from '@/composables/useShoppingLists'
+import type { ShoppingList } from '@/types'
 
 const router = useRouter()
 const showSnackbar = inject<(text: string, color?: string, icon?: string) => void>('showSnackbar')!
-const { lists, loading, error, fetchLists, createList } = useShoppingLists()
+const { lists, deletedLists, loading, error, fetchLists, createList, updateList, removeList, fetchDeletedLists, restoreList, duplicateList } = useShoppingLists()
 
 const showCreate = ref(false)
 const newListName = ref('')
 const creating = ref(false)
+
+const showEdit = ref(false)
+const editListName = ref('')
+const editListId = ref('')
+const updating = ref(false)
+
+const showDeleteConfirm = ref(false)
+const deleteTarget = ref<ShoppingList | null>(null)
+const showDeleted = ref(false)
 
 onMounted(() => {
   fetchLists()
@@ -144,6 +278,62 @@ async function onCreateList() {
     error.value = 'Fehler beim Erstellen der Liste'
   } finally {
     creating.value = false
+  }
+}
+
+function openEditDialog(list: ShoppingList) {
+  editListId.value = list.id
+  editListName.value = list.name
+  showEdit.value = true
+}
+
+async function onDuplicateList(list: ShoppingList) {
+  try {
+    await duplicateList(list.id)
+    showSnackbar(`"${list.name}" dupliziert`, 'success', 'mdi-content-copy')
+  } catch {
+    error.value = 'Fehler beim Duplizieren'
+  }
+}
+
+function confirmDeleteList(list: ShoppingList) {
+  deleteTarget.value = list
+  showDeleteConfirm.value = true
+}
+
+async function onRestoreList(list: ShoppingList) {
+  try {
+    await restoreList(list.id)
+    showSnackbar(`"${list.name}" wiederhergestellt`, 'success', 'mdi-restore')
+  } catch {
+    error.value = 'Fehler beim Wiederherstellen'
+  }
+}
+
+async function onDeleteList() {
+  if (!deleteTarget.value) return
+  try {
+    await removeList(deleteTarget.value.id)
+    showDeleteConfirm.value = false
+    showSnackbar(`"${deleteTarget.value.name}" geloescht`, 'success', 'mdi-delete-check')
+    deleteTarget.value = null
+  } catch {
+    error.value = 'Fehler beim Loeschen der Liste'
+  }
+}
+
+async function onUpdateList() {
+  const name = editListName.value.trim()
+  if (!name) return
+  updating.value = true
+  try {
+    await updateList(editListId.value, { name })
+    showEdit.value = false
+    showSnackbar(`Liste umbenannt zu "${name}"`)
+  } catch {
+    error.value = 'Fehler beim Umbenennen'
+  } finally {
+    updating.value = false
   }
 }
 </script>

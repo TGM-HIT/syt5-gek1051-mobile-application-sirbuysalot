@@ -22,3 +22,7 @@ Thumbs.db
 *.log
 
 .claude
+.claude-flow/
+.swarm/
+.mcp.json
+CLAUDE.md

@@ -3,19 +3,6 @@ import { useShoppingLists } from '@/composables/useShoppingLists'
 import { listService } from '@/services/listService'
 import type { ShoppingList } from '@/types'
 
-vi.mock('@/db', () => ({
-  db: {
-    shoppingLists: {
-      add: vi.fn().mockResolvedValue('mock-id'),
-      put: vi.fn().mockResolvedValue('mock-id'),
-      update: vi.fn().mockResolvedValue(1),
-      filter: vi.fn().mockReturnValue({
-        toArray: vi.fn().mockResolvedValue([]),
-      }),
-    },
-  },
-}))
-
 vi.mock('@/services/listService', () => ({
   listService: {
     getAll: vi.fn(),
@@ -47,14 +34,9 @@ describe('useShoppingLists', () => {
     lists.value = []
     loading.value = false
     error.value = null
-    Object.defineProperty(navigator, 'onLine', {
-      value: true,
-      writable: true,
-      configurable: true,
-    })
   })
 
-  it('fetchLists populates the lists ref when online', async () => {
+  it('fetchLists populates the lists ref', async () => {
     const mockLists = [makeList()]
     vi.mocked(listService.getAll).mockResolvedValue(mockLists)
 
@@ -77,27 +59,25 @@ describe('useShoppingLists', () => {
     expect(loading.value).toBe(false)
   })
 
-  it('fetchLists falls back to Dexie on network error', async () => {
+  it('fetchLists sets error on failure', async () => {
     vi.mocked(listService.getAll).mockRejectedValue(new Error('Network error'))
 
-    const { lists, fetchLists } = useShoppingLists()
+    const { error, fetchLists } = useShoppingLists()
     await fetchLists()
 
-    // Falls back to local cache (empty mock), no crash
-    expect(lists.value).toEqual([])
+    expect(error.value).toBe('Network error')
   })
 
-  it('createList prepends to the list and syncs when online', async () => {
+  it('createList prepends to the list', async () => {
     const created = makeList({ id: '2', name: 'New List' })
     vi.mocked(listService.create).mockResolvedValue(created)
 
     const { lists, createList } = useShoppingLists()
-    await createList('New List')
+    const result = await createList('New List')
 
-    expect(listService.create).toHaveBeenCalledWith(
-      expect.objectContaining({ name: 'New List' }),
-    )
-    expect(lists.value.length).toBeGreaterThanOrEqual(1)
+    expect(listService.create).toHaveBeenCalledWith({ name: 'New List' })
+    expect(result).toEqual(created)
+    expect(lists.value[0]).toEqual(created)
   })
 
   it('updateList replaces the list in the array', async () => {
