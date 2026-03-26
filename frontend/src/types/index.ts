@@ -37,7 +37,6 @@ export interface AppUser {
 
 export interface CreateListPayload {
   name: string
-  id?: string
 }
 
 export interface CreateProductPayload {

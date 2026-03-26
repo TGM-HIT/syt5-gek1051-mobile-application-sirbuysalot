@@ -15,6 +15,14 @@
 
       <template #append>
         <v-btn
+          :icon="isDark ? 'mdi-weather-night' : 'mdi-weather-sunny'"
+          variant="text"
+          color="white"
+          size="small"
+          class="mr-1"
+          @click="toggleDarkMode"
+        />
+        <v-btn
           v-if="!isLoggedIn()"
           variant="outlined"
           color="white"
@@ -40,6 +48,8 @@
         </v-chip>
       </template>
     </v-app-bar>
+
+    <OfflineBanner />
 
     <v-main class="bg-background">
       <router-view v-slot="{ Component }">
@@ -95,12 +105,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, provide, reactive } from 'vue'
+import { ref, computed, onMounted, provide, reactive } from 'vue'
 import { useUser } from '@/composables/useUser'
-import { useShoppingLists } from '@/composables/useShoppingLists'
+import { useDarkMode } from '@/composables/useDarkMode'
+import OfflineBanner from '@/components/OfflineBanner.vue'
 
 const { displayName, isLoggedIn, setDisplayName } = useUser()
-const { syncPendingLists } = useShoppingLists()
+const { isDark, toggle: toggleDarkMode } = useDarkMode()
 
 const showNameDialog = ref(false)
 const nameInput = ref('')
@@ -132,11 +143,6 @@ onMounted(() => {
   } else {
     nameInput.value = displayName()
   }
-  window.addEventListener('online', syncPendingLists)
-})
-
-onUnmounted(() => {
-  window.removeEventListener('online', syncPendingLists)
 })
 
 function saveName() {
