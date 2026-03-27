@@ -1,0 +1,78 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - production
+          - staging
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy to ${{ inputs.environment || 'production' }}
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment || 'production' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Frontend
+        run: |
+          cd frontend
+          npm ci
+          npm run build
+        env:
+          NODE_OPTIONS: "--max_old_space_size=4096"
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: "21"
+          distribution: temurin
+
+      - name: Build Backend JAR
+        run: |
+          cd backend
+          chmod +x ./mvnw
+          ./mvnw -B package -DskipTests -Dspring.profiles.active=prod
+
+      - name: Deploy via SSH
+        if: github.event_name != 'workflow_dispatch' || inputs.environment == 'production'
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script: |
+            cd ${{ secrets.DEPLOY_PATH }}
+            
+            # Stop existing containers
+            docker compose down || true
+            
+            # Pull latest changes
+            git pull origin main
+            
+            # Build new images
+            docker compose build --no-cache
+            
+            # Start services
+            docker compose up -d
+            
+            # Health check
+            sleep 10
+            curl -f http://localhost:8080/actuator/health || exit 1
+            curl -f http://localhost:5173/ || exit 1
+
+      - name: Notify Deployment
+        if: always()
+        run: |
+          echo "Deployment to ${{ inputs.environment || 'production' }} completed with status: ${{ job.status }}"
