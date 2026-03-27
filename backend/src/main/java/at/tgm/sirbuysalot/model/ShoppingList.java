@@ -21,7 +21,7 @@ public class ShoppingList {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @NotBlank(message = "Name darf nicht leer sein")
+    @NotBlank(message = "Listenname darf nicht leer sein")
     @Column(nullable = false)
     private String name;
 

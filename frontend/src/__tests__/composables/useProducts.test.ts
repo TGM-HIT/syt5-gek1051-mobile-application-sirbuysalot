@@ -3,22 +3,6 @@ import { useProducts } from '@/composables/useProducts'
 import { productService } from '@/services/productService'
 import type { Product } from '@/types'
 
-vi.mock('@/db', () => ({
-  db: {
-    products: {
-      put: vi.fn().mockResolvedValue(undefined),
-      update: vi.fn().mockResolvedValue(undefined),
-      where: vi.fn().mockReturnValue({
-        equals: vi.fn().mockReturnValue({
-          filter: vi.fn().mockReturnValue({
-            toArray: vi.fn().mockResolvedValue([]),
-          }),
-        }),
-      }),
-    },
-  },
-}))
-
 vi.mock('@/services/productService', () => ({
   productService: {
     getAll: vi.fn(),
@@ -28,15 +12,6 @@ vi.mock('@/services/productService', () => ({
     remove: vi.fn(),
   },
 }))
-
-vi.mock('vue', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('vue')>()
-  return {
-    ...actual,
-    onMounted: vi.fn((cb) => cb()),
-    onUnmounted: vi.fn(),
-  }
-})
 
 function makeProduct(overrides: Partial<Product> = {}): Product {
   return {
@@ -79,7 +54,7 @@ describe('useProducts', () => {
     const { error, fetchProducts } = useProducts(listId)
     await fetchProducts()
 
-    expect(error.value).toBe('Offline – keine gecachten Daten verfügbar')
+    expect(error.value).toBe('Failed')
   })
 
   it('fetchProducts sets loading state', async () => {

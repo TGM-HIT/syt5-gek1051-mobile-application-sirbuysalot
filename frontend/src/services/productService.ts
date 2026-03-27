@@ -25,4 +25,18 @@ export const productService = {
   async remove(listId: string, productId: string): Promise<void> {
     await api.delete(`/lists/${listId}/products/${productId}`)
   },
+
+  async getDeleted(listId: string): Promise<Product[]> {
+    const { data } = await api.get<Product[]>(`/lists/${listId}/products/deleted`)
+    return data
+  },
+
+  async restore(listId: string, productId: string): Promise<Product> {
+    const { data } = await api.patch<Product>(`/lists/${listId}/products/${productId}/restore`)
+    return data
+  },
+
+  async reorder(listId: string, order: { id: string; position: number }[]): Promise<void> {
+    await api.patch(`/lists/${listId}/products/reorder`, order)
+  },
 }

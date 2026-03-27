@@ -20,7 +20,47 @@
               </span>
             </div>
           </div>
+          <v-btn
+            icon="mdi-share-variant"
+            variant="tonal"
+            size="small"
+            color="primary"
+            @click="showShareDialog = true"
+          />
         </div>
+
+        <!-- Share dialog -->
+        <v-dialog v-model="showShareDialog" max-width="440">
+          <v-card class="pa-4">
+            <v-card-title class="text-h6 font-weight-bold">
+              <v-icon icon="mdi-share-variant" color="primary" class="mr-2" />
+              Liste teilen
+            </v-card-title>
+            <v-card-text>
+              <p class="text-body-2 text-medium-emphasis mb-3">
+                Teile diesen Link, damit andere der Liste beitreten koennen:
+              </p>
+              <v-text-field
+                :model-value="shareUrl"
+                readonly
+                prepend-inner-icon="mdi-link"
+                hide-details
+                @click="copyShareUrl"
+              >
+                <template #append-inner>
+                  <v-btn icon="mdi-content-copy" variant="text" size="small" @click="copyShareUrl" />
+                </template>
+              </v-text-field>
+              <div class="text-caption text-medium-emphasis mt-2">
+                Zugangscode: <strong>{{ accessCode }}</strong>
+              </div>
+            </v-card-text>
+            <v-card-actions>
+              <v-spacer />
+              <v-btn variant="text" @click="showShareDialog = false">Schliessen</v-btn>
+            </v-card-actions>
+          </v-card>
+        </v-dialog>
 
         <!-- Progress -->
         <v-card v-if="products.length > 0" class="mb-5 pa-4" border>
@@ -39,6 +79,72 @@
           />
         </v-card>
 
+        <!-- Cost summary -->
+        <v-card v-if="totalCost > 0" class="mb-5 pa-4" border>
+          <div class="d-flex align-center mb-2">
+            <v-icon icon="mdi-cash-register" color="primary" class="mr-2" />
+            <span class="text-body-2 font-weight-medium">Kosten</span>
+          </div>
+          <div class="d-flex justify-space-between align-center">
+            <div>
+              <div class="text-caption text-medium-emphasis">Gekauft</div>
+              <div class="text-body-1 font-weight-bold text-success">{{ formatPrice(purchasedCost) }}</div>
+            </div>
+            <div class="text-center">
+              <div class="text-caption text-medium-emphasis">Offen</div>
+              <div class="text-body-1 font-weight-bold text-warning">{{ formatPrice(remainingCost) }}</div>
+            </div>
+            <div class="text-right">
+              <div class="text-caption text-medium-emphasis">Gesamt</div>
+              <div class="text-body-1 font-weight-bold text-primary">{{ formatPrice(totalCost) }}</div>
+            </div>
+          </div>
+        </v-card>
+
+        <!-- Search bar -->
+        <v-text-field
+          v-model="searchQuery"
+          label="Produkte durchsuchen..."
+          prepend-inner-icon="mdi-magnify"
+          clearable
+          density="compact"
+          hide-details
+          class="mb-3"
+        />
+
+        <!-- Tag filter chips -->
+        <div v-if="allTags.length > 0" class="d-flex flex-wrap ga-2 mb-4">
+          <v-chip
+            v-for="tag in allTags"
+            :key="tag.id"
+            :color="selectedTags.includes(tag.id) ? 'secondary' : 'default'"
+            :variant="selectedTags.includes(tag.id) ? 'flat' : 'outlined'"
+            label
+            size="small"
+            @click="toggleTagFilter(tag.id)"
+          >
+            {{ tag.name }}
+          </v-chip>
+          <v-chip
+            v-if="selectedTags.length > 0"
+            variant="text"
+            size="small"
+            @click="selectedTags = []"
+          >
+            Alle
+          </v-chip>
+          <v-spacer />
+          <v-btn
+            variant="text"
+            size="x-small"
+            color="secondary"
+            prepend-icon="mdi-tag-multiple"
+            @click="showTagManagement = true"
+          >
+            Tags
+          </v-btn>
+        </div>
+
         <v-progress-linear v-if="loading" indeterminate color="primary" rounded class="mb-5" />
 
         <v-alert v-if="error" type="error" variant="tonal" class="mb-5" closable rounded="xl">
@@ -46,10 +152,16 @@
         </v-alert>
 
         <!-- Product list -->
-        <transition-group name="product" tag="div">
+        <draggable
+          v-model="draggableProducts"
+          item-key="id"
+          handle=".drag-handle"
+          animation="200"
+          ghost-class="drag-ghost"
+          @end="onDragEnd"
+        >
+          <template #item="{ element: product }">
           <v-card
-            v-for="product in products"
-            :key="product.id"
             class="mb-3 product-card"
             :class="{ 'product-purchased': product.purchased }"
             border
@@ -104,9 +216,84 @@
               >
                 {{ formatPrice(product.price) }}
               </v-chip>
+
+              <!-- Edit button -->
+              <v-btn
+                icon="mdi-pencil"
+                variant="text"
+                size="x-small"
+                color="grey"
+                class="ml-1"
+                @click.stop="openEditDialog(product)"
+              />
+
+              <!-- Delete button -->
+              <v-btn
+                icon="mdi-delete-outline"
+                variant="text"
+                size="x-small"
+                color="error"
+                class="ml-1"
+                @click.stop="confirmDelete(product)"
+              />
+
+              <!-- Drag handle -->
+              <v-icon
+                icon="mdi-drag"
+                class="ml-1 drag-handle"
+                color="grey"
+                size="small"
+                @click.stop
+              />
             </div>
           </v-card>
-        </transition-group>
+          </template>
+        </draggable>
+
+        <!-- Deleted products toggle -->
+        <div class="d-flex align-center mb-3 mt-4">
+          <v-switch
+            v-model="showDeleted"
+            label="Ausgeblendete anzeigen"
+            color="warning"
+            density="compact"
+            hide-details
+            @update:model-value="onToggleDeleted"
+          />
+        </div>
+
+        <!-- Deleted products -->
+        <template v-if="showDeleted">
+          <v-card
+            v-for="product in deletedProducts"
+            :key="'del-' + product.id"
+            class="mb-3"
+            border
+            variant="outlined"
+            color="warning"
+          >
+            <div class="d-flex align-center pa-4">
+              <v-icon icon="mdi-delete-clock" color="warning" class="mr-3" />
+              <div class="flex-grow-1">
+                <div class="text-subtitle-1 text-decoration-line-through text-medium-emphasis">
+                  {{ product.name }}
+                </div>
+              </div>
+              <v-btn
+                variant="tonal"
+                color="success"
+                size="small"
+                prepend-icon="mdi-restore"
+                @click="onRestoreProduct(product)"
+              >
+                Wiederherstellen
+              </v-btn>
+            </div>
+          </v-card>
+          <div v-if="deletedProducts.length === 0" class="text-body-2 text-medium-emphasis text-center mb-4">
+            Keine ausgeblendeten Produkte
+          </div>
+        </template>
 
         <!-- Empty state -->
         <v-card v-if="!loading && products.length === 0" class="pa-8 text-center" border>
@@ -179,6 +366,37 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
+
+    <!-- Edit product dialog -->
+    <ProductEditDialog
+      v-model="showEdit"
+      :product="editProduct"
+      :saving="editSaving"
+      @save="onSaveEdit"
+    />
+
+    <!-- Delete confirmation -->
+    <v-dialog v-model="showDeleteConfirm" max-width="360">
+      <v-card class="pa-4">
+        <v-card-title class="text-h6">Produkt ausblenden?</v-card-title>
+        <v-card-text>
+          "{{ deleteTarget?.name }}" wird ausgeblendet. Du kannst es spaeter wiederherstellen.
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn variant="text" @click="showDeleteConfirm = false">Abbrechen</v-btn>
+          <v-btn color="error" @click="onDeleteProduct">Ausblenden</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <!-- Tag management dialog -->
+    <TagManagementDialog
+      v-model="showTagManagement"
+      :tags="allTags"
+      @create="onCreateTag"
+      @delete="onDeleteTag"
+    />
   </v-container>
 </template>
 
@@ -188,6 +406,11 @@ import { useRoute } from 'vue-router'
 import { useProducts } from '@/composables/useProducts'
 import { useUser } from '@/composables/useUser'
 import { listService } from '@/services/listService'
+import { productService } from '@/services/productService'
+import ProductEditDialog from '@/components/ProductEditDialog.vue'
+import TagManagementDialog from '@/components/TagManagementDialog.vue'
+import { useTags } from '@/composables/useTags'
+import draggable from 'vuedraggable'
 import type { Product } from '@/types'
 
 const route = useRoute()
@@ -195,13 +418,26 @@ const listId = route.params.id as string
 const { displayName } = useUser()
 const showSnackbar = inject<(text: string, color?: string, icon?: string) => void>('showSnackbar')!
 
-const { products, loading, error, fetchProducts, addProduct, togglePurchase } = useProducts(listId)
+const { products, deletedProducts, loading, error, fetchProducts, fetchDeletedProducts, addProduct, updateProduct, togglePurchase, removeProduct, restoreProduct } = useProducts(listId)
+const { tags: allTags, fetchTags, createTag, removeTag: deleteTag } = useTags(listId)
 
 const listName = ref('...')
+const accessCode = ref('')
+const showShareDialog = ref(false)
 const showAdd = ref(false)
 const newProductName = ref('')
 const newProductPrice = ref<number | undefined>(undefined)
 const adding = ref(false)
+
+const showEdit = ref(false)
+const editProduct = ref<Product | null>(null)
+const editSaving = ref(false)
+const showDeleteConfirm = ref(false)
+const deleteTarget = ref<Product | null>(null)
+const showDeleted = ref(false)
+const searchQuery = ref('')
+const selectedTags = ref<string[]>([])
+const showTagManagement = ref(false)
 
 const activeProducts = computed(() => products.value.filter((p) => !p.purchased))
 const purchasedCount = computed(() => products.value.filter((p) => p.purchased).length)
@@ -210,15 +446,99 @@ const progressPercent = computed(() => {
   return Math.round((purchasedCount.value / products.value.length) * 100)
 })
 
+const totalCost = computed(() => {
+  return products.value
+    .filter((p) => p.price != null)
+    .reduce((sum, p) => sum + (p.price ?? 0), 0)
+})
+
+const purchasedCost = computed(() => {
+  return products.value
+    .filter((p) => p.purchased && p.price != null)
+    .reduce((sum, p) => sum + (p.price ?? 0), 0)
+})
+
+const remainingCost = computed(() => totalCost.value - purchasedCost.value)
+
+const filteredProducts = computed(() => {
+  let result = products.value
+
+  // Text search
+  const query = (searchQuery.value ?? '').toLowerCase().trim()
+  if (query) {
+    result = result.filter((p) => {
+      const nameMatch = p.name.toLowerCase().includes(query)
+      const tagMatch = p.tags?.some((t) => t.name.toLowerCase().includes(query))
+      return nameMatch || tagMatch
+    })
+  }
+
+  // Tag filter
+  if (selectedTags.value.length > 0) {
+    result = result.filter((p) =>
+      p.tags?.some((t) => selectedTags.value.includes(t.id))
+    )
+  }
+
+  return result
+})
+
+const sortedProducts = computed(() => {
+  return [...filteredProducts.value].sort((a, b) => {
+    if (a.purchased && !b.purchased) return 1
+    if (!a.purchased && b.purchased) return -1
+    return (a.position ?? 0) - (b.position ?? 0)
+  })
+})
+
+const draggableProducts = computed({
+  get: () => sortedProducts.value,
+  set: (val: Product[]) => {
+    val.forEach((p, idx) => {
+      const original = products.value.find((o) => o.id === p.id)
+      if (original) original.position = idx
+    })
+  },
+})
+
+const shareUrl = computed(() => {
+  return `${window.location.origin}/join/${accessCode.value}`
+})
+
 onMounted(async () => {
   try {
     const list = await listService.getById(listId)
     listName.value = list.name
+    accessCode.value = list.accessCode ?? ''
   } catch {
     listName.value = 'Unbekannte Liste'
   }
   fetchProducts()
+  fetchTags()
 })
+
+function toggleTagFilter(tagId: string) {
+  const idx = selectedTags.value.indexOf(tagId)
+  if (idx >= 0) {
+    selectedTags.value.splice(idx, 1)
+  } else {
+    selectedTags.value.push(tagId)
+  }
+}
+
+async function onCreateTag(name: string) {
+  await createTag(name)
+}
+
+async function onDeleteTag(tagId: string) {
+  await deleteTag(tagId)
+  await fetchProducts() // refresh products to remove deleted tag references
+}
+
+function copyShareUrl() {
+  navigator.clipboard.writeText(shareUrl.value)
+  showSnackbar('Link kopiert!', 'info', 'mdi-content-copy')
+}
 
 async function onAddProduct() {
   const name = newProductName.value.trim()
@@ -245,6 +565,63 @@ async function onTogglePurchase(product: Product) {
     await togglePurchase(product.id, displayName())
   } catch {
     error.value = 'Fehler beim Markieren'
+  }
+}
+
+function openEditDialog(product: Product) {
+  editProduct.value = product
+  showEdit.value = true
+}
+
+async function onSaveEdit(payload: { name: string; price: number | null }) {
+  if (!editProduct.value) return
+  editSaving.value = true
+  try {
+    await updateProduct(editProduct.value.id, payload)
+    showEdit.value = false
+    showSnackbar('Produkt aktualisiert')
+  } catch {
+    error.value = 'Fehler beim Speichern'
+  } finally {
+    editSaving.value = false
+  }
+}
+
+function onToggleDeleted(val: boolean) {
+  if (val) fetchDeletedProducts()
+}
+
+async function onRestoreProduct(product: Product) {
+  try {
+    await restoreProduct(product.id)
+    showSnackbar(`"${product.name}" wiederhergestellt`)
+  } catch {
+    error.value = 'Fehler beim Wiederherstellen'
+  }
+}
+
+function confirmDelete(product: Product) {
+  deleteTarget.value = product
+  showDeleteConfirm.value = true
+}
+
+async function onDeleteProduct() {
+  if (!deleteTarget.value) return
+  try {
+    await removeProduct(deleteTarget.value.id)
+    showDeleteConfirm.value = false
+    showSnackbar(`"${deleteTarget.value.name}" ausgeblendet`)
+  } catch {
+    error.value = 'Fehler beim Ausblenden'
+  }
+}
+
+async function onDragEnd() {
+  const order = products.value.map((p, idx) => ({ id: p.id, position: idx }))
+  try {
+    await productService.reorder(listId, order)
+  } catch {
+    // Position persist failed, local order still applies
   }
 }
 
@@ -283,16 +660,16 @@ function formatTime(dateStr: string | null): string {
   transform: scale(1.1);
 }
 
-.product-enter-active,
-.product-leave-active {
-  transition: all 0.3s ease;
+.drag-handle {
+  cursor: grab;
+  touch-action: none;
 }
-.product-enter-from {
-  opacity: 0;
-  transform: translateY(-10px);
+.drag-handle:active {
+  cursor: grabbing;
 }
-.product-leave-to {
-  opacity: 0;
-  transform: translateX(30px);
+.drag-ghost {
+  opacity: 0.4;
+  background: rgb(var(--v-theme-primary));
+  border-radius: 8px;
 }
 </style>

@@ -1,49 +1,46 @@
 # Changelog
 
-Alle nennenswerten Änderungen an diesem Projekt werden in dieser Datei dokumentiert.
+Alle relevanten Aenderungen am Projekt werden hier dokumentiert.
 
-Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
+## [1.0.0] - 2026-03-24
 
----
+### Hinzugefuegt
 
-## [Unreleased]
+#### Must Have (US-01 bis US-14)
+- **US-01:** Einkaufsliste erstellen mit Validierung (SA)
+- **US-02:** Listennamen bearbeiten ueber Edit-Dialog (SA)
+- **US-03:** Zugangscode generieren, teilen und beitreten mit Anzeigename (DR)
+- **US-04:** Produkt hinzufuegen mit Name (Pflicht) und Preis (optional) (SA)
+- **US-05:** Tags/Kategorien an Produkte zuweisen mit Chip-Anzeige (GL)
+- **US-06:** Preis nachtraeglich bearbeiten ueber ProductEditDialog (SA)
+- **US-07:** Produkt als gekauft markieren/entmarkieren mit visueller Hervorhebung (GU)
+- **US-08:** Anzeige wer wann ein Produkt markiert hat (GU)
+- **US-09:** Echtzeit-Suche ueber Produktnamen und Tags (KU)
+- **US-10:** Produkt ausblenden (soft delete mit deletedAt) (SA)
+- **US-11:** Ausgeblendete Produkte wiederherstellen (SA)
+- **US-12:** Offline-Speicherung mit IndexedDB/Dexie, pendingChanges-Tabelle (DR)
+- **US-13:** Auto-Sync bei Reconnect ueber Batch-Endpoint und WebSocket (DR)
+- **US-14:** Konfliktbehandlung mit Versionspruefung (409) und Benachrichtigung (DR)
 
-### Added – US-1: Einkaufsliste erstellen
+#### Should Have (US-15 bis US-18)
+- **US-15:** Einkaufsliste ausblenden mit Bestaetigung-Dialog (SA)
+- **US-16:** Geloeschte Listen anzeigen und wiederherstellen (SA)
+- **US-17:** Docker-Deployment mit nginx, SPA-Routing und GitHub Actions (KU)
+- **US-18:** Dark Mode mit System-Praeferenz und localStorage-Persistenz (KU)
 
-**Frontend:**
-- `useShoppingLists.ts`: Offline-First `createList` – speichert zuerst lokal in Dexie.js mit `synced: false`, fügt die Liste sofort reaktiv ein und sendet bei bestehender Verbindung per `POST /api/lists` ans Backend
-- `useShoppingLists.ts`: `syncPendingLists` – sendet alle lokalen Einträge mit `synced: false` per Batch beim nächsten Online-Gang
-- `useShoppingLists.ts`: `fetchLists` nutzt Dexie als Offline-Fallback
-- `App.vue`: `window.addEventListener('online', syncPendingLists)` für automatische Synchronisation bei Reconnect
-- `types/index.ts`: Optionales `id`-Feld in `CreateListPayload` für client-seitig generierte UUID
-- `vitest.config.ts`: Vitest-Konfiguration mit jsdom-Umgebung
-- `src/__tests__/useShoppingLists.test.ts`: Unit-Tests für die lokale Speicher-Logik (5 Testfälle)
+#### Nice to Have (US-19 bis US-24)
+- **US-19:** P2P-Synchronisation ueber PeerJS/WebRTC (GU)
+- **US-20:** Tag-Verwaltung (erstellen, bearbeiten, loeschen) (GL)
+- **US-21:** Produktfilter nach Tags mit Chip-Auswahl (GU)
+- **US-22:** Gesamtkosten-Anzeige (gekauft/offen/gesamt) (KU)
+- **US-23:** Drag & Drop Sortierung mit vuedraggable und Touch-Support (GL)
+- **US-24:** Liste duplizieren mit allen Produkten (GL)
 
-**Backend:**
-- `ShoppingList.java`: `@NotBlank`-Validierung auf dem `name`-Feld
-- `ShoppingListController.java`: `@Valid` bei `POST /api/lists`
-- `ShoppingListServiceTest.java`: JUnit-5-Tests für `create`, `findAll`, `findById`, `update`
-- `ShoppingListControllerTest.java`: JUnit-5-Tests für alle Controller-Endpunkte (MockMvc, kein Spring-Kontext)
-## [Unreleased]
-
-### Added
-
-- **Produkt als „gekauft" markieren** (User Story GEK1051)
-  - Klick/Tap auf ein Produkt togglet den `purchased`-Status (optimistisches Update)
-  - Markierte Produkte werden durchgestrichen und ausgegraut dargestellt (bereits vorhanden)
-  - Status wird mit Zeitstempel (`purchasedAt`) lokal in Dexie.js gespeichert (`synced: false`)
-  - Bei bestehender Verbindung wird die Statusänderung über WebSocket (`/topic/lists/{listId}/products`) an alle verbundenen Clients der Liste gesendet
-  - **Offline-Modus**: Statusänderung wird sofort lokal gespeichert; beim nächsten Online-Gang (`window.online`-Event) werden alle ausstehenden Änderungen (`synced: false`) automatisch mit dem Server synchronisiert
-  - Fallback auf Dexie.js-Cache beim Laden der Produkte ohne Netzwerkverbindung
-
-### Changed
-
-- `ProductService.markPurchased()` nimmt jetzt zusätzlich `listId` entgegen und sendet nach dem Speichern eine WebSocket-Nachricht via `SimpMessagingTemplate`
-- `ProductController.togglePurchase()` extrahiert `listId` aus dem Pfad und gibt es an den Service weiter
-- `useProducts.ts` überarbeitet: Dexie.js-Integration für lokales Caching, optimistisches Toggle, Offline-Sync beim Reconnect
-- `vite.config.ts`: Vitest-Konfiguration hinzugefügt (`environment: jsdom`)
-
-### Tests
-
-- **Frontend** (`useProducts.test.ts` – Vitest): Tests für optimistisches Update, Dexie-Persistenz mit `synced: false`, Sync nach erfolgreicher API-Antwort, Offline-Verhalten und Offline-Fallback beim Laden
-- **Backend** (`ProductServiceTest.java` – JUnit 5 + Mockito): Tests für Toggle-Logik (markieren/entmarkieren), Versions-Increment und WebSocket-Broadcast nach `markPurchased()`
+### Technische Details
+- **Frontend:** Vue 3 + Vuetify 3 + Vite + TypeScript
+- **Backend:** Spring Boot 3.2.12 + Java 21 + JPA/Hibernate
+- **Datenbank:** PostgreSQL 16 via Docker Compose
+- **Offline:** IndexedDB via Dexie.js mit pendingChanges-Queue
+- **Echtzeit:** WebSocket/STOMP + PeerJS fuer P2P
+- **PWA:** vite-plugin-pwa mit Service Worker und Manifest
+- **Deployment:** Multi-Stage Docker Builds + nginx Reverse Proxy
