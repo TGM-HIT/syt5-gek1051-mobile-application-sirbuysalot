@@ -1,5 +1,11 @@
 # Mobile Application SirBuysALot
 
+[![CI](https://github.com/TGM-HIT/syt5-gek1051-mobile-application-sirbuysalot/actions/workflows/ci.yml/badge.svg)](https://github.com/TGM-HIT/syt5-gek1051-mobile-application-sirbuysalot/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/TGM-HIT/syt5-gek1051-mobile-application-sirbuysalot)](https://github.com/TGM-HIT/syt5-gek1051-mobile-application-sirbuysalot/releases/tag/v1.0.0)
+[![Tests](https://img.shields.io/badge/Tests-200%20passed-brightgreen)](https://github.com/TGM-HIT/syt5-gek1051-mobile-application-sirbuysalot/actions)
+[![Backend](https://img.shields.io/badge/Backend-100%20tests-blue)](https://github.com/TGM-HIT/syt5-gek1051-mobile-application-sirbuysalot/actions)
+[![Frontend](https://img.shields.io/badge/Frontend-100%20tests-blue)](https://github.com/TGM-HIT/syt5-gek1051-mobile-application-sirbuysalot/actions)
+
 ## Projektübersicht
 
 Das Projekt ist eine Progressive Web App (PWA) für gemeinsame Einkaufslisten. Mehrere Personen können gleichzeitig dieselbe Liste bearbeiten, Produkte hinzufügen, abhaken und mit Tags organisieren. Über einen generierten Einladungslink können andere einfach der Liste beitreten und einen Anzeigenamen wählen, ohne sich registrieren zu müssen. So sieht jeder, wer was wann markiert hat, und Doppelkäufe können vermieden werden. Produkte können außerdem per Soft Delete ausgeblendet und bei Bedarf wiederhergestellt werden, sodass keine Daten verloren gehen.
@@ -77,6 +83,11 @@ Product      n──m Tag  (via product_tags)
 - **Schnittstellen-Dokumentation:** [API-Schnittstellen.md](Documentation/API-Schnittstellen.md)
 
 Alle REST-Endpunkte (Listen, Produkte, Tags, Benutzer, Sync) sowie die WebSocket-Schnittstelle sind dokumentiert.
+
+### Weitere Dokumentation
+
+- **Technical Documentation:** [Technical-Documentation.md](Documentation/Technical-Documentation.md) - Architektur, umgesetzte Funktionen, Offline-Sync, Testabdeckung
+- **Fallbeispiel (4 User):** [Fallbeispiel-4-User.md](Documentation/Fallbeispiel-4-User.md) - Szenario mit 2 Online- und 2 Offline-Benutzern, Synchronisation und Konfliktbehandlung
 
 ---
 
