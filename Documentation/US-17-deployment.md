@@ -42,3 +42,11 @@ Multi-stage Build: Installiert Dependencies mit `npm ci`, baut mit `npm run buil
 - Trigger: Push auf `main` oder manuell
 - Zwei parallele Jobs: `build-backend` und `build-frontend`
 - Jeder Job baut das Docker-Image zur Validierung
+
+---
+
+## Testabdeckung
+
+| Akzeptanzkriterium | Testdatei | Testname |
+|---|---|---|
+| GitHub Actions Deploy-Workflow | .github/workflows/ci.yml | CI/CD Pipeline (Build & Test) |

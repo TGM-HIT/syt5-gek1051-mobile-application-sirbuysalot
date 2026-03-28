@@ -41,3 +41,14 @@ Client B: Version 3 -> Server: 409 CONFLICT (Version 3 < 4)
   -> Benutzer klickt "Neu laden"
   -> GET /products/{id} -> Version 4 wird geladen
 ```
+
+---
+
+## Testabdeckung
+
+| Akzeptanzkriterium | Testdatei | Testname |
+|---|---|---|
+| Server prueft Versionsnummern bei Updates (optimistic locking) | ProductServiceTest.java | update_withVersionConflict_throwsConflictException |
+| Bei Versionskonflikt wird HTTP 409 zurueckgegeben | ProductServiceTest.java | update_withVersionConflict_throwsConflictException |
+| ConflictException mit Server- und Client-Version fuer Debugging | ProductServiceTest.java | update_withVersionConflict_throwsConflictException |
+| Benutzer kann die aktuelle Version vom Server neu laden | ProductServiceTest.java | update_withZeroVersion_skipsConflictCheck |

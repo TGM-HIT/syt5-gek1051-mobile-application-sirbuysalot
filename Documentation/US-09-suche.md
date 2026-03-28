@@ -25,3 +25,16 @@ Als Benutzer moechte ich Produkte in der Einkaufsliste durchsuchen koennen (auch
 2. Ab dem ersten Zeichen werden Produkte gefiltert
 3. Nur Produkte, deren Name oder Tags den Suchbegriff enthalten, werden angezeigt
 4. Loeschen des Suchfeldes zeigt wieder alle Produkte
+
+---
+
+## Testabdeckung
+
+| Akzeptanzkriterium | Testdatei | Testname |
+|---|---|---|
+| Suche startet bereits ab dem ersten Buchstaben | useProducts.extended.test.ts | search single char |
+| Suche filtert Produkte in Echtzeit | useProducts.extended.test.ts | search partial match |
+| Gross-/Kleinschreibung wird ignoriert | useProducts.extended.test.ts | search case insensitive |
+| Suche durchsucht Produktnamen und Tags | useProducts.extended.test.ts | search partial match |
+| Suchfeld ist immer sichtbar | useProducts.extended.test.ts | search empty string returns all |
+| Suchfeld ist immer sichtbar | useProducts.extended.test.ts | search no match |

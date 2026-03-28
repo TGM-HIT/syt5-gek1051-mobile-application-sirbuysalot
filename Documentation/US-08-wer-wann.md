@@ -27,3 +27,13 @@ Als Benutzer moechte ich bei markierten Produkten sehen, wer es wann markiert ha
 2. Sein Anzeigename und die aktuelle Uhrzeit werden gespeichert
 3. Alle Teilnehmer sehen unter dem Produkt: "Max · 14:32"
 4. Bei Aufhebung der Markierung verschwindet die Info
+
+---
+
+## Testabdeckung
+
+| Akzeptanzkriterium | Testdatei | Testname |
+|---|---|---|
+| Bei markierten Produkten wird Anzeigename angezeigt | ProductServiceTest.java | markPurchased_togglesFromUnpurchasedToPurchased |
+| Uhrzeit der Markierung wird angezeigt | ProductServiceTest.java | markPurchased_togglesFromUnpurchasedToPurchased |
+| Information aktualisiert sich bei Statusaenderung | ProductServiceTest.java | markPurchased_togglesFromPurchasedToUnpurchased |

@@ -17,7 +17,7 @@ Eine Progressive Web App (PWA) fuer gemeinsame Einkaufslisten mit Offline-First-
 |---------|------|-------|
 | KU | Kural | Product Owner (PO) |
 | DR | Dragne | Technical Architect (TA) |
-| GU | Gunna | Entwickler |
+| GA | Ganner | Entwickler |
 | GL | Glatzel | Entwickler |
 | SA | Sarana | Entwickler |
 
@@ -31,8 +31,8 @@ Eine Progressive Web App (PWA) fuer gemeinsame Einkaufslisten mit Offline-First-
 | **4** | Als Benutzer moechte ich ein Produkt (Name erforderlich, Preis optional) zu einer Einkaufsliste hinzufuegen koennen, damit ich weiss, was gekauft werden muss. | 3 | SA | MH | [![Erledigt](https://img.shields.io/badge/Status-Erledigt-brightgreen)](https://github.com/TGM-HIT/syt5-gek1051-mobile-application-sirbuysalot/issues/11) |
 | **5** | Als Benutzer moechte ich einem Produkt Tags (Kategorien/Gruppen) zuweisen koennen, damit ich meine Einkaeufe strukturiert organisieren kann. | 5 | GL | MH | [![Erledigt](https://img.shields.io/badge/Status-Erledigt-brightgreen)](https://github.com/TGM-HIT/syt5-gek1051-mobile-application-sirbuysalot/issues/17) |
 | **6** | Als Benutzer moechte ich den Preis eines Produkts nachtraeglich eintragen oder aendern koennen, damit die tatsaechlichen Kosten erfasst werden. | 3 | SA | MH | [![Erledigt](https://img.shields.io/badge/Status-Erledigt-brightgreen)](https://github.com/TGM-HIT/syt5-gek1051-mobile-application-sirbuysalot/issues/12) |
-| **7** | Als Benutzer moechte ich ein Produkt als "gekauft" markieren oder diese Markierung wieder aufheben koennen (durchgestrichen + ausgegraut), damit der aktuelle Status sichtbar ist. | 5 | GU | MH | [![Erledigt](https://img.shields.io/badge/Status-Erledigt-brightgreen)](https://github.com/TGM-HIT/syt5-gek1051-mobile-application-sirbuysalot/issues/19) |
-| **8** | Als Benutzer moechte ich bei markierten Produkten sehen, wer es wann markiert hat (Name + Uhrzeit), damit keine Doppelkaeufe entstehen. | 3 | GU | MH | [![Erledigt](https://img.shields.io/badge/Status-Erledigt-brightgreen)](https://github.com/TGM-HIT/syt5-gek1051-mobile-application-sirbuysalot/issues/14) |
+| **7** | Als Benutzer moechte ich ein Produkt als "gekauft" markieren oder diese Markierung wieder aufheben koennen (durchgestrichen + ausgegraut), damit der aktuelle Status sichtbar ist. | 5 | GA | MH | [![Erledigt](https://img.shields.io/badge/Status-Erledigt-brightgreen)](https://github.com/TGM-HIT/syt5-gek1051-mobile-application-sirbuysalot/issues/19) |
+| **8** | Als Benutzer moechte ich bei markierten Produkten sehen, wer es wann markiert hat (Name + Uhrzeit), damit keine Doppelkaeufe entstehen. | 3 | GA | MH | [![Erledigt](https://img.shields.io/badge/Status-Erledigt-brightgreen)](https://github.com/TGM-HIT/syt5-gek1051-mobile-application-sirbuysalot/issues/14) |
 | **9** | Als Benutzer moechte ich Produkte in der Einkaufsliste durchsuchen koennen (auch mit einzelnen Buchstaben), damit ich schnell finde, was ich suche. | 5 | KU | MH | [![Erledigt](https://img.shields.io/badge/Status-Erledigt-brightgreen)](https://github.com/TGM-HIT/syt5-gek1051-mobile-application-sirbuysalot/issues/20) |
 | **10** | Als Benutzer moechte ich ein Produkt aus der Liste ausblenden koennen (soft delete), damit die Liste uebersichtlich bleibt. | 3 | SA | MH | [![Erledigt](https://img.shields.io/badge/Status-Erledigt-brightgreen)](https://github.com/TGM-HIT/syt5-gek1051-mobile-application-sirbuysalot/issues/15) |
 | **11** | Als Benutzer moechte ich ausgeblendete Produkte wiederherstellen koennen, damit versehentlich entfernte Eintraege nicht verloren gehen. | 3 | SA | MH | [![Erledigt](https://img.shields.io/badge/Status-Erledigt-brightgreen)](https://github.com/TGM-HIT/syt5-gek1051-mobile-application-sirbuysalot/issues/21) |
@@ -43,9 +43,9 @@ Eine Progressive Web App (PWA) fuer gemeinsame Einkaufslisten mit Offline-First-
 | **16** | Als Benutzer moechte ich ausgeblendete Einkaufslisten wiederherstellen koennen, damit versehentlich entfernte Listen nicht verloren gehen. | 3 | SA | SH | [![Erledigt](https://img.shields.io/badge/Status-Erledigt-brightgreen)](https://github.com/TGM-HIT/syt5-gek1051-mobile-application-sirbuysalot/issues/24) |
 | **17** | Als Benutzer moechte ich ueber eine oeffentliche URL auf die App zugreifen koennen (Deployment), damit ich sie von ueberall nutzen kann. | 8 | KU | SH | [![Erledigt](https://img.shields.io/badge/Status-Erledigt-brightgreen)](https://github.com/TGM-HIT/syt5-gek1051-mobile-application-sirbuysalot/issues/25) |
 | **18** | Als Benutzer moechte ich einen Darkmode aktivieren koennen, um meine Augen zu schonen. | 5 | KU | SH | [![Erledigt](https://img.shields.io/badge/Status-Erledigt-brightgreen)](https://github.com/TGM-HIT/syt5-gek1051-mobile-application-sirbuysalot/issues/26) |
-| **19** | Als Benutzer moechte ich, dass die Synchronisation auch ueber P2P funktioniert (z.B. PeerJS), damit die App dezentral nutzbar ist. | 13 | GU | N2H | [![Erledigt](https://img.shields.io/badge/Status-Erledigt-brightgreen)](https://github.com/TGM-HIT/syt5-gek1051-mobile-application-sirbuysalot/issues/27) |
+| **19** | Als Benutzer moechte ich, dass die Synchronisation auch ueber P2P funktioniert (z.B. PeerJS), damit die App dezentral nutzbar ist. | 13 | GA | N2H | [![Erledigt](https://img.shields.io/badge/Status-Erledigt-brightgreen)](https://github.com/TGM-HIT/syt5-gek1051-mobile-application-sirbuysalot/issues/27) |
 | **20** | Als Benutzer moechte ich Tags verwalten koennen (erstellen, bearbeiten, loeschen), damit ich meine Kategorien anpassen kann. | 5 | GL | N2H | [![Erledigt](https://img.shields.io/badge/Status-Erledigt-brightgreen)](https://github.com/TGM-HIT/syt5-gek1051-mobile-application-sirbuysalot/issues/28) |
-| **21** | Als Benutzer moechte ich Produkte nach Tags filtern koennen, damit ich nur bestimmte Kategorien sehe. | 5 | GU | N2H | [![Erledigt](https://img.shields.io/badge/Status-Erledigt-brightgreen)](https://github.com/TGM-HIT/syt5-gek1051-mobile-application-sirbuysalot/issues/29) |
+| **21** | Als Benutzer moechte ich Produkte nach Tags filtern koennen, damit ich nur bestimmte Kategorien sehe. | 5 | GA | N2H | [![Erledigt](https://img.shields.io/badge/Status-Erledigt-brightgreen)](https://github.com/TGM-HIT/syt5-gek1051-mobile-application-sirbuysalot/issues/29) |
 | **22** | Als Benutzer moechte ich die Gesamtkosten aller Produkte in einer Liste sehen koennen, damit ich mein Budget im Blick habe. | 3 | KU | N2H | [![Erledigt](https://img.shields.io/badge/Status-Erledigt-brightgreen)](https://github.com/TGM-HIT/syt5-gek1051-mobile-application-sirbuysalot/issues/30) |
 | **23** | Als Benutzer moechte ich Produkte innerhalb der Liste per Drag & Drop sortieren koennen, damit ich die Reihenfolge anpassen kann. | 5 | GL | N2H | [![Erledigt](https://img.shields.io/badge/Status-Erledigt-brightgreen)](https://github.com/TGM-HIT/syt5-gek1051-mobile-application-sirbuysalot/issues/31) |
 | **24** | Als Benutzer moechte ich eine Einkaufsliste duplizieren koennen, damit ich wiederkehrende Einkaeufe schnell neu anlegen kann. | 8 | GL | N2H | [![Erledigt](https://img.shields.io/badge/Status-Erledigt-brightgreen)](https://github.com/TGM-HIT/syt5-gek1051-mobile-application-sirbuysalot/issues/32) |
@@ -69,6 +69,6 @@ Eine Progressive Web App (PWA) fuer gemeinsame Einkaufslisten mit Offline-First-
 
 * **KU (Kural):** US-09, US-17, US-18, US-22 — 21 SP
 * **DR (Dragne):** US-03, US-12, US-13, US-14 — 26 SP
-* **GU (Gunna):** US-07, US-08, US-19, US-21 — 26 SP
+* **GA (Ganner):** US-07, US-08, US-19, US-21 — 26 SP
 * **GL (Glatzel):** US-05, US-20, US-23, US-24 — 23 SP
 * **SA (Sarana):** US-01, US-02, US-04, US-06, US-10, US-11, US-15, US-16 — 24 SP

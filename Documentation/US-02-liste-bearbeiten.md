@@ -26,3 +26,18 @@ Als Benutzer moechte ich den Namen einer Einkaufsliste bearbeiten koennen, damit
 
 - Bestehende Tests decken die Update-Funktionalitaet ab.
 - Manuell getestet: Name aendern, Seite neu laden, neuer Name wird angezeigt.
+
+---
+
+## Testabdeckung
+
+| Akzeptanzkriterium | Testdatei | Testname |
+|---|---|---|
+| Benutzer kann den Namen einer bestehenden Liste aendern | ShoppingListServiceTest.java | update_updatesNameAndIncrementsVersion |
+| Benutzer kann den Namen einer bestehenden Liste aendern | ShoppingListControllerTest.java | update_returnsList |
+| Benutzer kann den Namen einer bestehenden Liste aendern | listService.test.ts | updateList |
+| Benutzer kann den Namen einer bestehenden Liste aendern | useShoppingLists.test.ts | updates list |
+| Aenderung wird sofort gespeichert | ShoppingListServiceTest.java | update_updatesNameAndIncrementsVersion |
+| Aenderung wird sofort gespeichert | listService.test.ts | updateList |
+| Andere Teilnehmer sehen den neuen Namen nach Sync | ShoppingListServiceTest.java | update_updatesNameAndIncrementsVersion |
+| Andere Teilnehmer sehen den neuen Namen nach Sync | ShoppingListControllerTest.java | update_returnsList |

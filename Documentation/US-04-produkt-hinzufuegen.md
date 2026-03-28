@@ -28,3 +28,22 @@ Als Benutzer moechte ich ein Produkt (Name erforderlich, Preis optional) zu eine
 
 - `ProductControllerTest` und `ProductServiceTest` testen die Erstellung.
 - Frontend: `useProducts.test.ts` testet die `addProduct`-Funktion.
+
+---
+
+## Testabdeckung
+
+| Akzeptanzkriterium | Testdatei | Testname |
+|---|---|---|
+| Produktname ist Pflichtfeld | ProductServiceTest.java | create_associatesWithListAndSaves |
+| Produktname ist Pflichtfeld | ProductServiceTest.java | create_setsShoppingListOnProduct |
+| Produktname ist Pflichtfeld | ProductControllerTest.java | create_returnsProduct |
+| Produktname ist Pflichtfeld | productService.test.ts | createProduct |
+| Produktname ist Pflichtfeld | useProducts.test.ts | creates product |
+| Preis ist optional (kann leer bleiben) | ProductServiceTest.java | create_withNullPrice_savesSuccessfully |
+| Produkt erscheint sofort in der Liste | ProductServiceTest.java | findByListId_returnsNonDeletedProducts |
+| Produkt erscheint sofort in der Liste | ProductControllerTest.java | getAll_returnsProducts |
+| Produkt erscheint sofort in der Liste | productService.test.ts | fetchProducts |
+| Produkt erscheint sofort in der Liste | useProducts.test.ts | loads products |
+| Validierung: Name darf nicht leer sein | ProductServiceTest.java | create_throwsWhenListNotFound |
+| Validierung: Name darf nicht leer sein | ProductControllerTest.java | create_returnsProduct |

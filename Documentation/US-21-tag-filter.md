@@ -25,3 +25,16 @@ Als Benutzer moechte ich Produkte nach Tags filtern koennen, damit ich nur besti
 3. Produktliste zeigt nur noch passende Produkte
 4. Erneuter Klick auf den Tag deaktiviert den Filter
 5. Klick auf "Alle" setzt den Filter zurueck
+
+---
+
+## Testabdeckung
+
+| Akzeptanzkriterium | Testdatei | Testname |
+|---|---|---|
+| Ein oder mehrere Tags koennen ausgewaehlt werden | useProducts.extended.test.ts | tag filter |
+| Ein oder mehrere Tags koennen ausgewaehlt werden | useProducts.extended.test.ts | multi-tag AND filter |
+| Nur Produkte mit ausgewaehlten Tags werden angezeigt | useProducts.extended.test.ts | tag filter |
+| Nur Produkte mit ausgewaehlten Tags werden angezeigt | useProducts.extended.test.ts | multi-tag AND filter |
+| Filter kann zurueckgesetzt werden | useProducts.extended.test.ts | search empty string returns all |
+| Filter und Suche kombiniert | useProducts.extended.test.ts | combined search and tag filter |

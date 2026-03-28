@@ -28,3 +28,19 @@ Das Backend unterstuetzt Soft Delete bereits ueber den DELETE-Endpoint, der `del
 - Dialog nennt den Listennamen zur Sicherheit
 - Hinweis im Dialog, dass die Liste wiederhergestellt werden kann (US-16)
 - `@click.prevent` auf dem Button verhindert, dass die Router-Navigation ausgeloest wird
+
+---
+
+## Testabdeckung
+
+| Akzeptanzkriterium | Testdatei | Testname |
+|---|---|---|
+| Soft Delete (deletedAt wird gesetzt, Liste wird nicht physisch geloescht) | ShoppingListServiceTest.java | softDelete_setsDeletedAt |
+| Soft Delete (deletedAt wird gesetzt, Liste wird nicht physisch geloescht) | ShoppingListServiceTest.java | softDelete_throwsWhenNotFound |
+| Soft Delete (deletedAt wird gesetzt, Liste wird nicht physisch geloescht) | ShoppingListControllerTest.java | delete_returns204 |
+| Soft Delete (deletedAt wird gesetzt, Liste wird nicht physisch geloescht) | ShoppingListControllerTest.java | delete_callsServiceAndReturns204 |
+| Soft Delete (deletedAt wird gesetzt, Liste wird nicht physisch geloescht) | listService.test.ts | deleteList |
+| Soft Delete (deletedAt wird gesetzt, Liste wird nicht physisch geloescht) | useShoppingLists.test.ts | deletes list |
+| Geloeschte Liste verschwindet sofort aus der Anzeige | ShoppingListServiceTest.java | findAll_returnsNonDeletedLists |
+| Geloeschte Liste verschwindet sofort aus der Anzeige | ShoppingListControllerTest.java | getAll_returnsLists |
+| Geloeschte Liste verschwindet sofort aus der Anzeige | listService.test.ts | fetchLists |

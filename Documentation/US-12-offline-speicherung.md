@@ -33,3 +33,16 @@ Als Benutzer moechte ich alle Aenderungen offline vornehmen koennen, wobei diese
 
 - `PendingChange`: id (auto-increment), type, entity, entityId, listId, payload, timestamp
 - Alle lokalen Entities haben ein `synced`-Flag
+
+---
+
+## Testabdeckung
+
+| Akzeptanzkriterium | Testdatei | Testname |
+|---|---|---|
+| Alle Aenderungen werden in IndexedDB gespeichert | syncService.test.ts | storePendingChange |
+| Aenderungen erhalten einen Zeitstempel | syncService.test.ts | storePendingChange |
+| Alle CRUD-Operationen funktionieren ohne Netzwerk | syncService.test.ts | getPendingChanges |
+| Alle CRUD-Operationen funktionieren ohne Netzwerk | syncService.test.ts | clearPendingChanges |
+| Lokale Aenderungen sind als "pending sync" markiert | syncService.test.ts | getPendingCount |
+| Lokale Aenderungen sind als "pending sync" markiert | syncService.test.ts | getPendingChanges |

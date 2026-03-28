@@ -28,3 +28,19 @@ Als Benutzer moechte ich den Preis eines Produkts nachtraeglich eintragen oder a
 
 - Bestehende Tests decken das Produkt-Update ab.
 - Manuell getestet: Preis setzen, aendern, entfernen.
+
+---
+
+## Testabdeckung
+
+| Akzeptanzkriterium | Testdatei | Testname |
+|---|---|---|
+| Preis kann jederzeit eingetragen werden | ProductServiceTest.java | update_updatesFieldsAndIncrementsVersion |
+| Preis kann jederzeit eingetragen werden | ProductControllerTest.java | update_returnsProduct |
+| Preis kann jederzeit eingetragen werden | productService.test.ts | updateProduct |
+| Preis kann jederzeit eingetragen werden | useProducts.test.ts | updates product |
+| Preis kann geaendert werden | ProductServiceTest.java | update_updatesFieldsAndIncrementsVersion |
+| Preis kann geaendert werden | productService.test.ts | updateProduct |
+| Preis kann geaendert werden | useProducts.test.ts | updates product |
+| Nur numerische Werte (mit Dezimalstellen) erlaubt | ProductServiceTest.java | update_updatesFieldsAndIncrementsVersion |
+| Nur numerische Werte (mit Dezimalstellen) erlaubt | ProductServiceTest.java | create_withNullPrice_savesSuccessfully |

@@ -30,3 +30,24 @@ Als Benutzer moechte ich einem Produkt Tags (Kategorien/Gruppen) zuweisen koenne
 
 - `Tag`: id (UUID), name (String), shoppingList (ManyToOne)
 - `Product.tags`: ManyToMany-Relation ueber die Join-Tabelle `product_tags`
+
+---
+
+## Testabdeckung
+
+| Akzeptanzkriterium | Testdatei | Testname |
+|---|---|---|
+| Produkt kann mehrere Tags haben | ProductServiceTest.java | setTags_assignsTagsAndIncrementsVersion |
+| Produkt kann mehrere Tags haben | ProductServiceTest.java | setTags_throwsWhenProductNotFound |
+| Produkt kann mehrere Tags haben | productService.extended.test.ts | setProductTags |
+| Tags sind frei waehlbare Textfelder | TagServiceTest.java | create_savesTag |
+| Tags sind frei waehlbare Textfelder | TagServiceTest.java | create_throwsWhenListNotFound |
+| Tags sind frei waehlbare Textfelder | TagControllerTest.java | create_returnsTag |
+| Tags sind frei waehlbare Textfelder | TagControllerTest.java | create_longName_returns200 |
+| Tags sind frei waehlbare Textfelder | tagService.test.ts | createTag |
+| Tags sind frei waehlbare Textfelder | useTags.test.ts | creates tag |
+| Vorhandene Tags werden als Vorschlaege angezeigt | TagServiceTest.java | findByListId_returnsTags |
+| Vorhandene Tags werden als Vorschlaege angezeigt | TagControllerTest.java | getAll_returnsTags |
+| Vorhandene Tags werden als Vorschlaege angezeigt | tagService.test.ts | fetchTags |
+| Vorhandene Tags werden als Vorschlaege angezeigt | useTags.test.ts | loads tags |
+| Tags werden visuell am Produkt angezeigt | useProducts.test.ts | loads product tags |
