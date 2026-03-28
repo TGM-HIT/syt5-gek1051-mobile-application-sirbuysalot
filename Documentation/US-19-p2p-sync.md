@@ -48,3 +48,20 @@ Client A                          Client B
 2. Der Server bleibt die "Source of Truth" fuer persistente Daten
 3. P2P-Nachrichten sind ergaenzend zum Server-Sync, nicht als Ersatz
 4. Bei Netzwerkwechsel (z.B. WLAN -> Mobil) wird automatisch reconnected
+
+---
+
+## Testabdeckung
+
+| Akzeptanzkriterium | Testdatei | Testname |
+|---|---|---|
+| PeerJS/WebRTC-basierte P2P-Verbindung zwischen Clients | websocketService.test.ts | connect creates WebSocket |
+| PeerJS/WebRTC-basierte P2P-Verbindung zwischen Clients | websocketService.test.ts | connect sets connected |
+| Automatische Peer-ID-Generierung pro Liste | websocketService.test.ts | connect creates WebSocket |
+| Statusanzeige: P2P verbunden, Anzahl Peers | websocketService.test.ts | connect sets connected |
+| Statusanzeige: P2P verbunden, Anzahl Peers | websocketService.test.ts | disconnect closes socket |
+| Broadcast-Funktion fuer Aenderungen an alle verbundenen Peers | websocketService.test.ts | dispatches messages to handlers |
+| Broadcast-Funktion fuer Aenderungen an alle verbundenen Peers | websocketService.test.ts | wildcard subscriber |
+| Automatische Reconnect-Logik | websocketService.test.ts | attempts reconnect on close |
+| Robuste Nachrichtenverarbeitung | websocketService.test.ts | ignores malformed messages |
+| Subscribe/Unsubscribe-Mechanismus | websocketService.test.ts | subscribe returns unsubscribe |

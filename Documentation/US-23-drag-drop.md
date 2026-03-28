@@ -35,3 +35,13 @@ Als Benutzer moechte ich Produkte in meiner Einkaufsliste per Drag & Drop sortie
 ### Touch-Support
 
 Durch SortableJS ist Touch-Support nativ integriert. Das `touch-action: none` CSS auf dem Handle verhindert Scroll-Konflikte auf mobilen Geraeten.
+
+---
+
+## Testabdeckung
+
+| Akzeptanzkriterium | Testdatei | Testname |
+|---|---|---|
+| Neue Reihenfolge wird an den Server gesendet (PATCH /reorder) | ProductServiceTest.java | reorder_updatesPositions |
+| Neue Reihenfolge wird an den Server gesendet (PATCH /reorder) | productService.extended.test.ts | reorderProducts |
+| Neue Reihenfolge wird an den Server gesendet (PATCH /reorder) | productService.extended.test.ts | reorderProducts error |

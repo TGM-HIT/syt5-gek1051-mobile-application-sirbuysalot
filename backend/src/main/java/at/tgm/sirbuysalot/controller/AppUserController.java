@@ -2,6 +2,8 @@ package at.tgm.sirbuysalot.controller;
 
 import at.tgm.sirbuysalot.model.AppUser;
 import at.tgm.sirbuysalot.service.AppUserService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -13,6 +15,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/lists/{listId}/users")
 @RequiredArgsConstructor
+@Tag(name = "Benutzer", description = "Benutzer-Verwaltung pro Einkaufsliste")
 public class AppUserController {
 
     private final AppUserService service;
