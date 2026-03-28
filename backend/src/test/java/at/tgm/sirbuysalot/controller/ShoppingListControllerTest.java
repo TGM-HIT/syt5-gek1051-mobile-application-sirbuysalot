@@ -111,4 +111,92 @@ class ShoppingListControllerTest {
 
         verify(service).softDelete(id);
     }
+
+    // --- Additional tests ---
+
+    @Test
+    void joinByCode_returnsList() throws Exception {
+        ShoppingList list = ShoppingList.builder()
+                .id(UUID.randomUUID()).name("Groceries").accessCode("abc12345").build();
+        when(service.findByAccessCode("abc12345")).thenReturn(Optional.of(list));
+
+        mockMvc.perform(get("/api/lists/join/{accessCode}", "abc12345"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value("Groceries"))
+                .andExpect(jsonPath("$.accessCode").value("abc12345"));
+    }
+
+    @Test
+    void joinByCode_returns404WhenNotFound() throws Exception {
+        when(service.findByAccessCode("nonexist")).thenReturn(Optional.empty());
+
+        mockMvc.perform(get("/api/lists/join/{accessCode}", "nonexist"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void getDeleted_returnsDeletedLists() throws Exception {
+        ShoppingList deleted = ShoppingList.builder()
+                .id(UUID.randomUUID()).name("Old List").build();
+        when(service.findDeleted()).thenReturn(List.of(deleted));
+
+        mockMvc.perform(get("/api/lists/deleted"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].name").value("Old List"));
+    }
+
+    @Test
+    void restore_returnsList() throws Exception {
+        UUID id = UUID.randomUUID();
+        ShoppingList list = ShoppingList.builder()
+                .id(id).name("Restored List").version(2).build();
+        when(service.restore(id)).thenReturn(list);
+
+        mockMvc.perform(patch("/api/lists/{id}/restore", id))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value("Restored List"))
+                .andExpect(jsonPath("$.version").value(2));
+    }
+
+    @Test
+    void duplicate_returnsDuplicatedList() throws Exception {
+        UUID id = UUID.randomUUID();
+        ShoppingList copy = ShoppingList.builder()
+                .id(UUID.randomUUID()).name("Groceries (Kopie)").accessCode("new12345").build();
+        when(service.duplicate(id)).thenReturn(copy);
+
+        mockMvc.perform(post("/api/lists/{id}/duplicate", id))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value("Groceries (Kopie)"))
+                .andExpect(jsonPath("$.accessCode").value("new12345"));
+    }
+
+    @Test
+    void create_blankName_returns400() throws Exception {
+        mockMvc.perform(post("/api/lists")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"\"}"))
+                .andExpect(status().isBadRequest());
+
+        verify(service, never()).create(any());
+    }
+
+    @Test
+    void create_whitespaceName_returns400() throws Exception {
+        mockMvc.perform(post("/api/lists")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"   \"}"))
+                .andExpect(status().isBadRequest());
+
+        verify(service, never()).create(any());
+    }
+
+    @Test
+    void getDeleted_returnsEmptyWhenNoneDeleted() throws Exception {
+        when(service.findDeleted()).thenReturn(List.of());
+
+        mockMvc.perform(get("/api/lists/deleted"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isEmpty());
+    }
 }
