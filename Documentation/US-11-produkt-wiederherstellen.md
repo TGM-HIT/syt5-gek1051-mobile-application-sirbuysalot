@@ -31,3 +31,19 @@ Als Benutzer moechte ich ausgeblendete Produkte wiederherstellen koennen, damit 
 3. Klick auf "Wiederherstellen" bei einem Produkt
 4. Produkt erscheint wieder in der aktiven Liste
 5. Snackbar bestaetigt die Wiederherstellung
+
+---
+
+## Testabdeckung
+
+| Akzeptanzkriterium | Testdatei | Testname |
+|---|---|---|
+| Benutzer kann ausgeblendete Produkte anzeigen lassen | ProductServiceTest.java | findDeletedByListId_returnsOnlyDeletedProducts |
+| Benutzer kann ausgeblendete Produkte anzeigen lassen | ProductServiceTest.java | findDeletedByListId_returnsEmptyWhenNoneDeleted |
+| Benutzer kann ausgeblendete Produkte anzeigen lassen | productService.extended.test.ts | fetchDeletedProducts |
+| Benutzer kann ausgeblendete Produkte anzeigen lassen | productService.extended.test.ts | fetchDeletedProducts empty |
+| Ausgeblendete Produkte koennen wiederhergestellt werden | ProductServiceTest.java | restore_setsDeletedAtNullAndIncrementsVersion |
+| Ausgeblendete Produkte koennen wiederhergestellt werden | ProductServiceTest.java | restore_throwsWhenNotFound |
+| Ausgeblendete Produkte koennen wiederhergestellt werden | productService.extended.test.ts | restoreProduct |
+| Wiederhergestellte Produkte erscheinen wieder in der Liste | ProductServiceTest.java | restore_setsDeletedAtNullAndIncrementsVersion |
+| Wiederhergestellte Produkte erscheinen wieder in der Liste | productService.extended.test.ts | restoreProduct |

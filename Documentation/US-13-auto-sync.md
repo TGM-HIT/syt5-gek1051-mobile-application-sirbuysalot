@@ -46,3 +46,36 @@ Client geht online
   -> Erfolgreich: pendingChanges aus IndexedDB entfernen
   -> Fehlgeschlagen: bleiben fuer naechsten Versuch gespeichert
 ```
+
+---
+
+## Testabdeckung
+
+| Akzeptanzkriterium | Testdatei | Testname |
+|---|---|---|
+| Batch-Sync-Endpoint im Backend verarbeitet mehrere Aenderungen auf einmal | SyncServiceTest.java | processBatch_createProduct |
+| Batch-Sync-Endpoint im Backend verarbeitet mehrere Aenderungen auf einmal | SyncServiceTest.java | processBatch_updateProduct |
+| Batch-Sync-Endpoint im Backend verarbeitet mehrere Aenderungen auf einmal | SyncServiceTest.java | processBatch_toggleProduct |
+| Batch-Sync-Endpoint im Backend verarbeitet mehrere Aenderungen auf einmal | SyncServiceTest.java | processBatch_deleteProduct |
+| Batch-Sync-Endpoint im Backend verarbeitet mehrere Aenderungen auf einmal | SyncServiceTest.java | processBatch_updateList |
+| Batch-Sync-Endpoint im Backend verarbeitet mehrere Aenderungen auf einmal | SyncServiceTest.java | processBatch_deleteList |
+| Batch-Sync-Endpoint im Backend verarbeitet mehrere Aenderungen auf einmal | SyncServiceTest.java | processBatch_returnsCorrectCounts |
+| Batch-Sync-Endpoint im Backend verarbeitet mehrere Aenderungen auf einmal | SyncControllerTest.java | syncBatch_returnsResults |
+| Batch-Sync-Endpoint im Backend verarbeitet mehrere Aenderungen auf einmal | SyncControllerTest.java | syncBatch_mixedResults |
+| Frontend erkennt Online-Wechsel und startet automatisch Sync | syncService.test.ts | syncChanges |
+| Frontend erkennt Online-Wechsel und startet automatisch Sync | syncService.test.ts | retrySync |
+| Frontend erkennt Online-Wechsel und startet automatisch Sync | syncService.test.ts | syncChanges returns counts |
+| WebSocket-Verbindung fuer Echtzeit-Updates zwischen Clients | SyncServiceTest.java | processBatch_broadcastsWebSocket |
+| SyncStatusIndicator zeigt ausstehende Aenderungen und Verbindungsstatus | syncService.test.ts | getPendingCount |
+| SyncStatusIndicator zeigt ausstehende Aenderungen und Verbindungsstatus | syncService.test.ts | getPendingChanges |
+| Backend broadcastet Aenderungen an verbundene Clients | SyncServiceTest.java | processBatch_broadcastsWebSocket |
+| Backend broadcastet Aenderungen an verbundene Clients | SyncControllerTest.java | syncBatch_returnsResults |
+| Batch-Sync mit leeren Aenderungen | SyncServiceTest.java | processBatch_emptyChanges |
+| Batch-Sync mit leeren Aenderungen | SyncControllerTest.java | syncBatch_emptyChanges |
+| Batch-Sync mit leeren Aenderungen | SyncControllerTest.java | syncBatch_nullChanges |
+| Batch-Sync mit unbekanntem Typ | SyncServiceTest.java | processBatch_unknownType_fails |
+| Batch-Sync mit ungueltigem Produkt | SyncServiceTest.java | processBatch_invalidProduct_countsFailed |
+| Batch-Sync mit ungueltiger Listen-ID | SyncControllerTest.java | syncBatch_invalidListId |
+| Frontend Sync-Fehlerbehandlung | syncService.test.ts | syncChanges error |
+| Frontend Sync-Fehlerbehandlung | syncService.test.ts | syncChanges mixed |
+| Frontend Sync-Fehlerbehandlung | syncService.test.ts | syncChanges empty |

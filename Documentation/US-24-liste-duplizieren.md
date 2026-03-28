@@ -26,3 +26,20 @@ Als Benutzer moechte ich eine bestehende Liste duplizieren koennen, um schnell e
 - `listService.ts` (geaendert): Neue `duplicate()` Methode (POST).
 - `useShoppingLists.ts` (geaendert): Neue `duplicateList()` Funktion, die die Kopie an den Anfang der Liste setzt.
 - `HomeView.vue` (geaendert): Neuer Kopieren-Button (mdi-content-copy) neben Edit- und Delete-Button. Klick ruft `onDuplicateList()` auf. Snackbar bestaetigt die Aktion.
+
+---
+
+## Testabdeckung
+
+| Akzeptanzkriterium | Testdatei | Testname |
+|---|---|---|
+| Backend-Endpoint POST /{id}/duplicate erstellt Kopie | ShoppingListServiceTest.java | duplicate_createsNewListWithKopieSuffix |
+| Backend-Endpoint POST /{id}/duplicate erstellt Kopie | ShoppingListServiceTest.java | duplicate_throwsWhenNotFound |
+| Backend-Endpoint POST /{id}/duplicate erstellt Kopie | ShoppingListControllerTest.java | duplicate_returnsList |
+| Backend-Endpoint POST /{id}/duplicate erstellt Kopie | listService.extended.test.ts | duplicateList |
+| Backend-Endpoint POST /{id}/duplicate erstellt Kopie | listService.extended.test.ts | duplicateList error |
+| Backend-Endpoint POST /{id}/duplicate erstellt Kopie | useShoppingLists.extended.test.ts | duplicates list |
+| Backend-Endpoint POST /{id}/duplicate erstellt Kopie | useShoppingLists.extended.test.ts | duplicates error |
+| Alle aktiven Produkte werden mitkopiert (Name, Preis, Position) | ShoppingListServiceTest.java | duplicate_copiesProducts |
+| Kopie erhaelt neuen Namen mit " (Kopie)" Suffix | ShoppingListServiceTest.java | duplicate_createsNewListWithKopieSuffix |
+| Kopie erhaelt eigenen Zugangscode | ShoppingListServiceTest.java | duplicate_generatesNewAccessCode |

@@ -23,3 +23,16 @@ Als Benutzer moechte ich die Gesamtkosten meiner Einkaufsliste sehen, damit ich 
 - Card zeigt drei Werte in Spalten: "Gekauft" (gruen), "Offen" (orange), "Gesamt" (primaer)
 - Verwendet bestehende `formatPrice()` Funktion (Intl.NumberFormat, de-AT, EUR)
 - Card wird nur angezeigt, wenn `totalCost > 0`
+
+---
+
+## Testabdeckung
+
+| Akzeptanzkriterium | Testdatei | Testname |
+|---|---|---|
+| Anzeige: Gekauft, Offen, Gesamt | useProducts.extended.test.ts | total cost |
+| Anzeige: Gekauft, Offen, Gesamt | useProducts.extended.test.ts | purchased cost |
+| Nur sichtbar wenn mindestens ein Produkt einen Preis hat | useProducts.extended.test.ts | null price excluded from cost |
+| Nur sichtbar wenn mindestens ein Produkt einen Preis hat | useProducts.extended.test.ts | cost with no products |
+| Berechnung aktualisiert sich automatisch bei Aenderungen | useProducts.extended.test.ts | total cost |
+| Berechnung aktualisiert sich automatisch bei Aenderungen | useProducts.extended.test.ts | purchased cost |

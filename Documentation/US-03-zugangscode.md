@@ -37,3 +37,25 @@ Als Benutzer moechte ich einen Zugangscode (URL) fuer meine Einkaufsliste generi
 4. Eingeladener oeffnet den Link -> JoinView zeigt Listenname + Textfeld fuer Anzeigenamen
 5. Nach Eingabe des Namens und Klick auf "Beitreten" wird der Benutzer registriert
 6. Weiterleitung zur Einkaufsliste
+
+---
+
+## Testabdeckung
+
+| Akzeptanzkriterium | Testdatei | Testname |
+|---|---|---|
+| Eindeutiger Zugangscode/URL wird generiert | ShoppingListServiceTest.java | create_setsAccessCodeAndSaves |
+| Andere Benutzer koennen per Code/URL beitreten | ShoppingListServiceTest.java | findByAccessCode_returnsList |
+| Andere Benutzer koennen per Code/URL beitreten | ShoppingListServiceTest.java | findByAccessCode_throwsWhenNotFound |
+| Andere Benutzer koennen per Code/URL beitreten | ShoppingListServiceTest.java | findByAccessCode_throwsWhenDeleted |
+| Andere Benutzer koennen per Code/URL beitreten | ShoppingListControllerTest.java | joinByCode_returnsList |
+| Andere Benutzer koennen per Code/URL beitreten | ShoppingListControllerTest.java | joinByCode_returns404 |
+| Andere Benutzer koennen per Code/URL beitreten | listService.test.ts | joinByCode |
+| Andere Benutzer koennen per Code/URL beitreten | useShoppingLists.test.ts | joins list by code |
+| Bei Beitritt muss ein Anzeigename eingegeben werden | AppUserControllerTest.java | joinList_returnsUser |
+| Bei Beitritt muss ein Anzeigename eingegeben werden | AppUserControllerTest.java | joinList_blankName_returns400 |
+| Bei Beitritt muss ein Anzeigename eingegeben werden | AppUserControllerTest.java | joinList_nullName_returns400 |
+| Bei Beitritt muss ein Anzeigename eingegeben werden | AppUserServiceTest.java | joinList_createsUser |
+| Bei Beitritt muss ein Anzeigename eingegeben werden | AppUserServiceTest.java | joinList_throwsWhenListNotFound |
+| Anzeigename ist fuer alle Teilnehmer sichtbar | AppUserControllerTest.java | getUsers_returnsUsers |
+| Anzeigename ist fuer alle Teilnehmer sichtbar | AppUserServiceTest.java | findByListId_returnsUsers |

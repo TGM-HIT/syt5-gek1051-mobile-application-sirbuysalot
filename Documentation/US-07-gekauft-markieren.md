@@ -31,3 +31,18 @@ Als Benutzer moechte ich ein Produkt als "gekauft" markieren oder diese Markieru
 3. Backend setzt `purchased`, `purchasedBy`, `purchasedAt`
 4. UI aktualisiert sich: Produkt wird durchgestrichen und rutscht nach unten
 5. Erneuter Klick macht die Markierung rueckgaengig
+
+---
+
+## Testabdeckung
+
+| Akzeptanzkriterium | Testdatei | Testname |
+|---|---|---|
+| Klick auf Produkt markiert es als "gekauft" | ProductServiceTest.java | markPurchased_togglesFromUnpurchasedToPurchased |
+| Klick auf Produkt markiert es als "gekauft" | ProductControllerTest.java | togglePurchase_returnsProduct |
+| Klick auf Produkt markiert es als "gekauft" | productService.test.ts | togglePurchase |
+| Klick auf Produkt markiert es als "gekauft" | useProducts.test.ts | toggles purchase |
+| Erneuter Klick hebt die Markierung auf | ProductServiceTest.java | markPurchased_togglesFromPurchasedToUnpurchased |
+| Erneuter Klick hebt die Markierung auf | ProductServiceTest.java | markPurchased_throwsWhenNotFound |
+| Status wird mit Zeitstempel gespeichert | ProductServiceTest.java | markPurchased_togglesFromUnpurchasedToPurchased |
+| Markiertes Produkt ist durchgestrichen und ausgegraut | useProducts.test.ts | sorts purchased to bottom |
