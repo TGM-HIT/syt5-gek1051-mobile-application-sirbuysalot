@@ -1,12 +1,117 @@
 # Mobile Application SirBuysALot
 
+[![CI](https://github.com/TGM-HIT/syt5-gek1051-mobile-application-sirbuysalot/actions/workflows/ci.yml/badge.svg)](https://github.com/TGM-HIT/syt5-gek1051-mobile-application-sirbuysalot/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/TGM-HIT/syt5-gek1051-mobile-application-sirbuysalot)](https://github.com/TGM-HIT/syt5-gek1051-mobile-application-sirbuysalot/releases/tag/v1.0.0)
+[![Tests](https://img.shields.io/badge/Tests-200%20passed-brightgreen)](https://github.com/TGM-HIT/syt5-gek1051-mobile-application-sirbuysalot/actions)
+[![Backend](https://img.shields.io/badge/Backend-100%20tests-blue)](https://github.com/TGM-HIT/syt5-gek1051-mobile-application-sirbuysalot/actions)
+[![Frontend](https://img.shields.io/badge/Frontend-100%20tests-blue)](https://github.com/TGM-HIT/syt5-gek1051-mobile-application-sirbuysalot/actions)
+
 ## Projektübersicht
 
 Das Projekt ist eine Progressive Web App (PWA) für gemeinsame Einkaufslisten. Mehrere Personen können gleichzeitig dieselbe Liste bearbeiten, Produkte hinzufügen, abhaken und mit Tags organisieren. Über einen generierten Einladungslink können andere einfach der Liste beitreten und einen Anzeigenamen wählen, ohne sich registrieren zu müssen. So sieht jeder, wer was wann markiert hat, und Doppelkäufe können vermieden werden. Produkte können außerdem per Soft Delete ausgeblendet und bei Bedarf wiederhergestellt werden, sodass keine Daten verloren gehen.
 
 Die App setzt auf eine **Offline-First-Architektur**: Änderungen werden primär lokal in IndexedDB (via Dexie.js) gespeichert und bei Verbindung automatisch per Batch-Request mit dem Backend synchronisiert. Versionskonflikte werden serverseitig erkannt und aufgelöst. Für Echtzeit-Updates zwischen Clients sorgen WebSockets, Statusänderungen wie das Abhaken eines Produkts landen so sofort bei allen anderen Teilnehmern.
 
-**Tech-Stack:** [Techstack](./techstack.md)
+**Tech-Stack:** Vue 3 + Vuetify 3 + Vite (Frontend), Spring Boot 3.2 + Java 21 (Backend), PostgreSQL 16 (DB), WebSockets/STOMP (Echtzeit), Dexie.js/IndexedDB (Offline), vite-plugin-pwa (PWA). Details: [Techstack](./techstack.md)
+
+---
+
+## Datenmodell
+
+### ShoppingList
+
+| Feld | Typ | Beschreibung |
+|------|-----|-------------|
+| `id` | `UUID` | Primaerschluessel (auto-generiert) |
+| `name` | `String` | Listenname (Pflichtfeld, nicht leer) |
+| `accessCode` | `String` | 8-stelliger Einladungscode (unique) |
+| `version` | `Integer` | Optimistic Locking Version (default: 1) |
+| `createdAt` | `LocalDateTime` | Erstellungszeitpunkt |
+| `updatedAt` | `LocalDateTime` | Letzte Aenderung |
+| `deletedAt` | `LocalDateTime` | Soft-Delete Zeitstempel (null = aktiv) |
+| `products` | `List<Product>` | 1:n Beziehung (Cascade ALL) |
+| `users` | `List<AppUser>` | 1:n Beziehung (Cascade ALL) |
+
+### Product
+
+| Feld | Typ | Beschreibung |
+|------|-----|-------------|
+| `id` | `UUID` | Primaerschluessel |
+| `name` | `String` | Produktname (Pflichtfeld) |
+| `price` | `BigDecimal` | Preis (optional) |
+| `purchased` | `Boolean` | Gekauft-Status (default: false) |
+| `purchasedBy` | `String` | Wer hat gekauft |
+| `purchasedAt` | `LocalDateTime` | Wann gekauft |
+| `position` | `Integer` | Sortierposition (Drag & Drop) |
+| `version` | `Integer` | Optimistic Locking Version |
+| `deletedAt` | `LocalDateTime` | Soft-Delete Zeitstempel |
+| `shoppingList` | `ShoppingList` | n:1 Beziehung (Fremdschluessel) |
+| `tags` | `Set<Tag>` | n:m Beziehung (Join-Table `product_tags`) |
+
+### Tag
+
+| Feld | Typ | Beschreibung |
+|------|-----|-------------|
+| `id` | `UUID` | Primaerschluessel |
+| `name` | `String` | Tag-Name (Pflichtfeld) |
+| `shoppingList` | `ShoppingList` | n:1 Beziehung |
+| `products` | `Set<Product>` | n:m Beziehung (Inverse-Seite) |
+
+### AppUser
+
+| Feld | Typ | Beschreibung |
+|------|-----|-------------|
+| `id` | `UUID` | Primaerschluessel |
+| `displayName` | `String` | Anzeigename (Pflichtfeld) |
+| `shoppingList` | `ShoppingList` | n:1 Beziehung |
+
+### ER-Beziehungen
+
+```
+ShoppingList 1──n Product
+ShoppingList 1──n AppUser
+ShoppingList 1──n Tag
+Product      n──m Tag  (via product_tags)
+```
+
+---
+
+## API-Dokumentation
+
+- **Swagger UI (interaktiv):** `http://localhost:8080/swagger-ui.html`
+- **OpenAPI JSON:** `http://localhost:8080/api-docs`
+- **Schnittstellen-Dokumentation:** [API-Schnittstellen.md](Documentation/API-Schnittstellen.md)
+
+Alle REST-Endpunkte (Listen, Produkte, Tags, Benutzer, Sync) sowie die WebSocket-Schnittstelle sind dokumentiert.
+
+### Weitere Dokumentation
+
+- **Technical Documentation:** [Technical-Documentation.md](Documentation/Technical-Documentation.md) - Architektur, umgesetzte Funktionen, Offline-Sync, Testabdeckung
+- **Fallbeispiel (4 User):** [Fallbeispiel-4-User.md](Documentation/Fallbeispiel-4-User.md) - Szenario mit 2 Online- und 2 Offline-Benutzern, Synchronisation und Konfliktbehandlung
+
+---
+
+## Tests
+
+```bash
+# Backend-Tests (100 Tests)
+cd backend
+./mvnw test -Dspring.profiles.active=test
+
+# Frontend-Tests (100 Tests)
+cd frontend
+npm run test
+
+# Frontend-Lint
+cd frontend
+npm run lint
+
+# Frontend-Build
+cd frontend
+npm run build
+```
+
+**Testabdeckung:** 200 Tests gesamt (100 Backend + 100 Frontend), inkl. Unit-Tests fuer alle Services, Controller und Composables. Grenzfaelle, Fehlerfaelle und Edge-Cases sind abgedeckt.
 
 ---
 
@@ -23,7 +128,7 @@ Die App setzt auf eine **Offline-First-Architektur**: Änderungen werden primär
 |--------|------|-------|
 | KU | Kural | Product Owner (PO) |
 | DR | Dragne | Technical Architect (TA) |
-| GU | Gunna | Entwickler (Ameise 1) |
+| GA | Ganner | Entwickler (Ameise 1) |
 | GL | Glatzel | Entwickler (Ameise 2) |
 | SA | Sarana | Entwickler (Ameise 3) |
 

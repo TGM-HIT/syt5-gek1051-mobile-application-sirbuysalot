@@ -1,5 +1,7 @@
 package at.tgm.sirbuysalot.controller;
 
+import at.tgm.sirbuysalot.config.GlobalExceptionHandler;
+import at.tgm.sirbuysalot.exception.ConflictException;
 import at.tgm.sirbuysalot.model.Product;
 import at.tgm.sirbuysalot.service.ProductService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -15,6 +17,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;

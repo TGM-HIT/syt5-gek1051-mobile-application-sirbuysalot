@@ -22,3 +22,16 @@ Als Benutzer moechte ich zwischen hellem und dunklem Design wechseln koennen, da
 ### Vuetify-Integration
 
 Die Vuetify-Instanz stellt bereits ein `light` und `dark` Theme bereit. Das Composable nutzt `useTheme()` von Vuetify, um `theme.global.name.value` dynamisch zu setzen. Alle Vuetify-Komponenten passen sich automatisch an.
+
+---
+
+## Testabdeckung
+
+| Akzeptanzkriterium | Testdatei | Testname |
+|---|---|---|
+| Toggle-Button in der App-Bar zum Wechseln zwischen Hell und Dunkel | useDarkMode.test.ts | toggleDarkMode switches |
+| Praeferenz wird in localStorage gespeichert | useDarkMode.test.ts | manual toggle persists |
+| Praeferenz wird in localStorage gespeichert | useDarkMode.test.ts | manual override persists over reload |
+| Beim ersten Besuch wird die System-Praeferenz verwendet | useDarkMode.test.ts | defaults to system preference |
+| Aenderung der System-Praeferenz wird live uebernommen (wenn kein manueller Override) | useDarkMode.test.ts | system preference change updates |
+| Aenderung der System-Praeferenz wird live uebernommen (wenn kein manueller Override) | useDarkMode.test.ts | manual override ignores system preference change |

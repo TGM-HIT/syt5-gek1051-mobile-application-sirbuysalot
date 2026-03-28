@@ -289,7 +289,7 @@ function openEditDialog(list: ShoppingList) {
 
 async function onDuplicateList(list: ShoppingList) {
   try {
-    const copy = await duplicateList(list.id)
+    await duplicateList(list.id)
     showSnackbar(`"${list.name}" dupliziert`, 'success', 'mdi-content-copy')
   } catch {
     error.value = 'Fehler beim Duplizieren'
