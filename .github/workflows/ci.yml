@@ -138,7 +138,81 @@ jobs:
 
       - name: Generate HTML test report
         if: always()
-        run: ./mvnw -B surefire-report:report-only site -DgenerateReports=false -Dspring.profiles.active=test
+        run: |
+          mkdir -p target/html-report
+          cat > target/html-report/index.html << 'REPORTEOF'
+          <!DOCTYPE html>
+          <html lang="de">
+          <head>
+            <meta charset="UTF-8">
+            <title>Backend Test Report – SirBuysALot</title>
+            <style>
+              body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;max-width:1000px;margin:40px auto;padding:0 20px;background:#f8f9fa;color:#333}
+              h1{color:#1a73e8;border-bottom:3px solid #1a73e8;padding-bottom:12px}
+              .summary{display:flex;gap:24px;margin:20px 0}
+              .stat{background:white;border-radius:12px;padding:20px 32px;box-shadow:0 2px 8px rgba(0,0,0,.1);text-align:center}
+              .stat-num{font-size:36px;font-weight:700;color:#28a745}.stat-label{font-size:13px;color:#666;margin-top:4px}
+              table{width:100%;border-collapse:collapse;background:white;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.1);margin-top:20px}
+              th{background:#1a73e8;color:white;padding:12px 16px;text-align:left;font-weight:600}
+              td{padding:10px 16px;border-bottom:1px solid #eee}
+              tr:hover{background:#f0f7ff}
+              .pass{color:#28a745;font-weight:700}.time{color:#666;font-size:13px}
+              .badge{display:inline-block;padding:3px 10px;border-radius:12px;font-size:12px;font-weight:600;background:#d4edda;color:#155724}
+            </style>
+          </head>
+          <body>
+            <h1>Backend Test Report</h1>
+            <p>Spring Boot 3.2 · JUnit 5 · Java 21</p>
+            <div class="summary">
+              <div class="stat"><div class="stat-num" id="total">0</div><div class="stat-label">Total</div></div>
+              <div class="stat"><div class="stat-num" id="passed" style="color:#28a745">0</div><div class="stat-label">Passed</div></div>
+              <div class="stat"><div class="stat-num" id="failed" style="color:#dc3545">0</div><div class="stat-label">Failed</div></div>
+              <div class="stat"><div class="stat-num" id="duration" style="color:#1a73e8">0s</div><div class="stat-label">Duration</div></div>
+            </div>
+            <table>
+              <thead><tr><th>Status</th><th>Test Class</th><th>Test Method</th><th>Duration</th></tr></thead>
+              <tbody id="results"></tbody>
+            </table>
+            <script>
+              fetch('results.json').then(r=>r.json()).then(data=>{
+                document.getElementById('total').textContent=data.total;
+                document.getElementById('passed').textContent=data.passed;
+                document.getElementById('failed').textContent=data.failed;
+                document.getElementById('duration').textContent=data.duration;
+                const tbody=document.getElementById('results');
+                data.tests.forEach(t=>{
+                  const tr=document.createElement('tr');
+                  tr.innerHTML=`<td><span class="badge">${t.status}</span></td><td>${t.classname}</td><td>${t.name}</td><td class="time">${t.time}s</td>`;
+                  tbody.appendChild(tr);
+                });
+              });
+            </script>
+          </body>
+          </html>
+          REPORTEOF
+
+          # Parse JUnit XML into JSON for the HTML report
+          python3 << 'PYEOF'
+          import xml.etree.ElementTree as ET, json, glob, os
+          tests = []
+          total = passed = failed = 0
+          duration = 0.0
+          for f in sorted(glob.glob('target/surefire-reports/TEST-*.xml')):
+              tree = ET.parse(f)
+              suite = tree.getroot()
+              for tc in suite.findall('testcase'):
+                  name = tc.get('name','')
+                  classname = tc.get('classname','').split('.')[-1]
+                  time = tc.get('time','0')
+                  status = 'FAIL' if tc.find('failure') is not None else 'PASS'
+                  tests.append({'name':name,'classname':classname,'time':time,'status':status})
+                  total += 1
+                  if status == 'PASS': passed += 1
+                  else: failed += 1
+                  duration += float(time)
+          with open('target/html-report/results.json','w') as f:
+              json.dump({'total':total,'passed':passed,'failed':failed,'duration':f'{duration:.1f}s','tests':tests}, f)
+          PYEOF
 
       - name: Backend Test Report
         uses: dorny/test-reporter@v1
@@ -153,7 +227,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: backend-html-report
-          path: backend/target/site/
+          path: backend/target/html-report/
 
   # ──────────────────────── Publish Reports ─────────────────────────
   publish-reports:
@@ -216,7 +290,7 @@ jobs:
             <div class="card">
               <h2>Backend Tests <span class="badge pass">100 passed</span></h2>
               <p>Spring Boot 3.2 + JUnit 5 · 10 test classes · Services, Controllers</p>
-              <p><a href="backend/surefire-report.html">→ Open Backend HTML Report</a></p>
+              <p><a href="backend/index.html">→ Open Backend HTML Report</a></p>
             </div>
           </body>
           </html>
