@@ -2,9 +2,9 @@
 
 [![CI](https://github.com/TGM-HIT/syt5-gek1051-mobile-application-sirbuysalot/actions/workflows/ci.yml/badge.svg)](https://github.com/TGM-HIT/syt5-gek1051-mobile-application-sirbuysalot/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/TGM-HIT/syt5-gek1051-mobile-application-sirbuysalot)](https://github.com/TGM-HIT/syt5-gek1051-mobile-application-sirbuysalot/releases/tag/v1.0.0)
-[![Tests](https://img.shields.io/badge/Tests-200%20passed-brightgreen)](https://github.com/TGM-HIT/syt5-gek1051-mobile-application-sirbuysalot/actions)
-[![Backend](https://img.shields.io/badge/Backend-100%20tests-blue)](https://github.com/TGM-HIT/syt5-gek1051-mobile-application-sirbuysalot/actions)
-[![Frontend](https://img.shields.io/badge/Frontend-100%20tests-blue)](https://github.com/TGM-HIT/syt5-gek1051-mobile-application-sirbuysalot/actions)
+[![Tests](https://img.shields.io/badge/Tests-200%20passed-brightgreen)](https://tgm-hit.github.io/syt5-gek1051-mobile-application-sirbuysalot/)
+[![Backend](https://img.shields.io/badge/Backend-100%20tests-blue)](https://tgm-hit.github.io/syt5-gek1051-mobile-application-sirbuysalot/backend/surefire-report.html)
+[![Frontend](https://img.shields.io/badge/Frontend-100%20tests-blue)](https://tgm-hit.github.io/syt5-gek1051-mobile-application-sirbuysalot/frontend/index.html)
 
 ## Projektübersicht
 
