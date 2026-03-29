@@ -4,22 +4,32 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 const OriginalWebSocket = globalThis.WebSocket
 
 // We need to re-import the module fresh for each test to reset internal state
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let websocketService: any
 
-function createMockWebSocket() {
-  const ws: any = {
+interface MockWebSocket {
+  readyState: number
+  close: ReturnType<typeof vi.fn>
+  send: ReturnType<typeof vi.fn>
+  onopen: (() => void) | null
+  onclose: (() => void) | null
+  onmessage: ((event: { data: string }) => void) | null
+  onerror: ((event: Event) => void) | null
+}
+
+function createMockWebSocket(): MockWebSocket {
+  return {
     readyState: 0, // CONNECTING
     close: vi.fn(),
     send: vi.fn(),
-    onopen: null as any,
-    onclose: null as any,
-    onmessage: null as any,
-    onerror: null as any,
+    onopen: null,
+    onclose: null,
+    onmessage: null,
+    onerror: null,
   }
-  return ws
 }
 
-let mockWs: ReturnType<typeof createMockWebSocket>
+let mockWs: MockWebSocket
 
 describe('websocketService', () => {
   beforeEach(async () => {
@@ -27,9 +37,10 @@ describe('websocketService', () => {
     mockWs = createMockWebSocket()
 
     // Mock WebSocket constructor
-    globalThis.WebSocket = vi.fn(() => mockWs) as any
-    ;(globalThis.WebSocket as any).OPEN = 1
-    ;(globalThis.WebSocket as any).CLOSED = 3
+    const MockWSConstructor = vi.fn(() => mockWs) as unknown as typeof WebSocket
+    Object.defineProperty(MockWSConstructor, 'OPEN', { value: 1 })
+    Object.defineProperty(MockWSConstructor, 'CLOSED', { value: 3 })
+    globalThis.WebSocket = MockWSConstructor
 
     // Reset module to get a fresh WebSocketService instance
     vi.resetModules()
@@ -57,7 +68,7 @@ describe('websocketService', () => {
 
     // Simulate open
     mockWs.readyState = 1
-    mockWs.onopen()
+    mockWs.onopen!()
 
     expect(websocketService.connected.value).toBe(true)
   })
@@ -65,7 +76,7 @@ describe('websocketService', () => {
   it('disconnect closes socket and resets state', () => {
     websocketService.connect('list-1')
     mockWs.readyState = 1
-    mockWs.onopen()
+    mockWs.onopen!()
 
     websocketService.disconnect()
 
@@ -85,8 +96,8 @@ describe('websocketService', () => {
     // Simulate a message to verify handler is removed
     websocketService.connect('list-1')
     mockWs.readyState = 1
-    mockWs.onopen()
-    mockWs.onmessage({ data: JSON.stringify({ type: 'product-added', name: 'Milk' }) })
+    mockWs.onopen!()
+    mockWs.onmessage!({ data: JSON.stringify({ type: 'product-added', name: 'Milk' }) })
 
     expect(handler).not.toHaveBeenCalled()
   })
@@ -97,10 +108,10 @@ describe('websocketService', () => {
 
     websocketService.connect('list-1')
     mockWs.readyState = 1
-    mockWs.onopen()
+    mockWs.onopen!()
 
     const message = { type: 'product-added', name: 'Milk' }
-    mockWs.onmessage({ data: JSON.stringify(message) })
+    mockWs.onmessage!({ data: JSON.stringify(message) })
 
     expect(handler).toHaveBeenCalledWith(message)
   })
@@ -113,10 +124,10 @@ describe('websocketService', () => {
 
     websocketService.connect('list-1')
     mockWs.readyState = 1
-    mockWs.onopen()
+    mockWs.onopen!()
 
     const message = { type: 'product-added', name: 'Milk' }
-    mockWs.onmessage({ data: JSON.stringify(message) })
+    mockWs.onmessage!({ data: JSON.stringify(message) })
 
     expect(wildcardHandler).toHaveBeenCalledWith(message)
     expect(topicHandler).toHaveBeenCalledWith(message)
@@ -124,23 +135,24 @@ describe('websocketService', () => {
 
   it('attempts reconnect on close', () => {
     // Track all created WebSocket instances
-    const instances: any[] = []
-    globalThis.WebSocket = vi.fn(() => {
+    const instances: MockWebSocket[] = []
+    const MockWSConstructor = vi.fn(() => {
       const ws = createMockWebSocket()
       instances.push(ws)
       return ws
-    }) as any
-    ;(globalThis.WebSocket as any).OPEN = 1
-    ;(globalThis.WebSocket as any).CLOSED = 3
+    }) as unknown as typeof WebSocket
+    Object.defineProperty(MockWSConstructor, 'OPEN', { value: 1 })
+    Object.defineProperty(MockWSConstructor, 'CLOSED', { value: 3 })
+    globalThis.WebSocket = MockWSConstructor
 
     websocketService.connect('list-1')
     const firstWs = instances[0]
     firstWs.readyState = 1
-    firstWs.onopen()
+    firstWs.onopen!()
 
     // Simulate close — readyState must reflect closed state
     firstWs.readyState = 3
-    firstWs.onclose()
+    firstWs.onclose!()
 
     // Advance timer past reconnect delay
     vi.advanceTimersByTime(5000)
@@ -155,10 +167,10 @@ describe('websocketService', () => {
 
     websocketService.connect('list-1')
     mockWs.readyState = 1
-    mockWs.onopen()
+    mockWs.onopen!()
 
     // Send malformed (non-JSON) data
-    mockWs.onmessage({ data: 'not-json{{{' })
+    mockWs.onmessage!({ data: 'not-json{{{' })
 
     // Handler should not be called, and no error thrown
     expect(handler).not.toHaveBeenCalled()

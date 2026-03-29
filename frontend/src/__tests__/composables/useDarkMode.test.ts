@@ -20,12 +20,12 @@ function setupMatchMedia() {
   mediaQueryListeners = []
   const mql = {
     matches: prefersDark,
-    addEventListener: vi.fn((event: string, handler: any) => {
+    addEventListener: vi.fn((_event: string, handler: (e: { matches: boolean }) => void) => {
       mediaQueryListeners.push(handler)
     }),
     removeEventListener: vi.fn(),
   }
-  vi.spyOn(window, 'matchMedia').mockReturnValue(mql as any)
+  vi.spyOn(window, 'matchMedia').mockReturnValue(mql as unknown as MediaQueryList)
 }
 
 describe('useDarkMode', () => {
