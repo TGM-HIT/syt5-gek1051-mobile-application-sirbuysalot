@@ -46,7 +46,7 @@
       </v-card-text>
       <v-card-actions class="px-6 pb-4">
         <v-spacer />
-        <v-btn variant="text" @click="$emit('update:modelValue', false)">Schliessen</v-btn>
+        <v-btn variant="text" @click="$emit('update:modelValue', false)">Schließen</v-btn>
       </v-card-actions>
     </v-card>
   </v-dialog>

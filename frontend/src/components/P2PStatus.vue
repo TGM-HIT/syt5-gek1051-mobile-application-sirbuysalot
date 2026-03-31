@@ -52,7 +52,7 @@
         </v-card-text>
         <v-card-actions class="px-6 pb-4">
           <v-spacer />
-          <v-btn variant="text" @click="showConnect = false">Schliessen</v-btn>
+          <v-btn variant="text" @click="showConnect = false">Schließen</v-btn>
           <v-btn color="primary" :disabled="!remotePeerInput.trim()" @click="onConnect">
             Verbinden
           </v-btn>

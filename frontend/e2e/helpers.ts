@@ -134,9 +134,9 @@ export async function mockApi(page: Page) {
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify([
-          { id: 'p1', name: 'Milch', price: 1.49, purchased: false, purchasedBy: null, purchasedAt: null, position: 0, tags: [{ id: 't1', name: 'Kuehlregal' }], version: 1, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), deletedAt: null },
+          { id: 'p1', name: 'Milch', price: 1.49, purchased: false, purchasedBy: null, purchasedAt: null, position: 0, tags: [{ id: 't1', name: 'Kühlregal' }], version: 1, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), deletedAt: null },
           { id: 'p2', name: 'Brot', price: 2.99, purchased: true, purchasedBy: 'Deniz', purchasedAt: new Date().toISOString(), position: 1, tags: [], version: 1, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), deletedAt: null },
-          { id: 'p3', name: 'Butter', price: 1.99, purchased: false, purchasedBy: null, purchasedAt: null, position: 2, tags: [{ id: 't1', name: 'Kuehlregal' }], version: 1, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), deletedAt: null },
+          { id: 'p3', name: 'Butter', price: 1.99, purchased: false, purchasedBy: null, purchasedAt: null, position: 2, tags: [{ id: 't1', name: 'Kühlregal' }], version: 1, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), deletedAt: null },
         ]),
       })
     } else if (route.request().method() === 'POST') {
@@ -170,7 +170,7 @@ export async function mockApi(page: Page) {
       status: 200,
       contentType: 'application/json',
       body: JSON.stringify({
-        id: 'p1', name: 'Milch', price: 1.49, purchased: true, purchasedBy: 'TestUser', purchasedAt: new Date().toISOString(), position: 0, tags: [{ id: 't1', name: 'Kuehlregal' }], version: 2,
+        id: 'p1', name: 'Milch', price: 1.49, purchased: true, purchasedBy: 'TestUser', purchasedAt: new Date().toISOString(), position: 0, tags: [{ id: 't1', name: 'Kühlregal' }], version: 2,
       }),
     })
   })
@@ -218,8 +218,8 @@ export async function mockApi(page: Page) {
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify([
-          { id: 't1', name: 'Kuehlregal' },
-          { id: 't2', name: 'Gemuese' },
+          { id: 't1', name: 'Kühlregal' },
+          { id: 't2', name: 'Gemüse' },
         ]),
       })
     } else if (route.request().method() === 'POST') {

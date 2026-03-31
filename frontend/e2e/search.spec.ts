@@ -24,14 +24,14 @@ test.describe('Produktsuche', () => {
 
   test('suche nach Tag-Name findet Produkte', async ({ page }) => {
     const searchInput = page.locator('.v-text-field').filter({ hasText: /durchsuchen/i }).locator('input')
-    await searchInput.fill('Kuehlregal')
+    await searchInput.fill('Kühlregal')
 
-    // Milch and Butter have tag Kuehlregal
+    // Milch and Butter have tag Kühlregal
     await expect(page.locator('.product-card').filter({ hasText: 'Milch' })).toBeVisible()
     await expect(page.locator('.product-card').filter({ hasText: 'Butter' })).toBeVisible()
   })
 
-  test('zeigt Hinzufuegen-Button wenn Suche keine Treffer hat', async ({ page }) => {
+  test('zeigt Hinzufügen-Button wenn Suche keine Treffer hat', async ({ page }) => {
     const searchInput = page.locator('.v-text-field').filter({ hasText: /durchsuchen/i }).locator('input')
     await searchInput.fill('Avocado')
 
@@ -39,16 +39,16 @@ test.describe('Produktsuche', () => {
     await expect(page.locator('.product-card')).toHaveCount(0)
 
     // "Avocado" add button appears
-    const addBtn = page.getByRole('button', { name: /Avocado.*hinzufuegen/i })
+    const addBtn = page.getByRole('button', { name: /Avocado.*hinzufügen/i })
     await expect(addBtn).toBeVisible()
   })
 
-  test('oeffnet Produkt-Dialog mit Suchbegriff vorausgefuellt', async ({ page }) => {
+  test('öffnet Produkt-Dialog mit Suchbegriff vorausgefüllt', async ({ page }) => {
     const searchInput = page.locator('.v-text-field').filter({ hasText: /durchsuchen/i }).locator('input')
     await searchInput.fill('Avocado')
 
     // Click the add button
-    await page.getByRole('button', { name: /Avocado.*hinzufuegen/i }).click()
+    await page.getByRole('button', { name: /Avocado.*hinzufügen/i }).click()
 
     // Dialog opens with "Avocado" pre-filled in the name field
     const dialog = page.locator('.v-dialog')

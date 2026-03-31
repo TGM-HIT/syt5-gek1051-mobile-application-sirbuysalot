@@ -32,29 +32,29 @@ test.describe('Produkte (Listenansicht)', () => {
     await expect(page.locator('text=Gesamt')).toBeVisible()
   })
 
-  test('fuegt neues Produkt hinzu', async ({ page }) => {
+  test('fügt neues Produkt hinzu', async ({ page }) => {
     await page.locator('.fab-btn').click()
     await expect(page.locator('text=Neues Produkt')).toBeVisible()
 
-    await page.locator('.v-dialog input').first().fill('Kaese')
-    await page.locator('.v-dialog').getByRole('button', { name: 'Hinzufuegen' }).click()
+    await page.locator('.v-dialog input').first().fill('Käse')
+    await page.locator('.v-dialog').getByRole('button', { name: 'Hinzufügen' }).click()
 
     // Snackbar confirmation
     await expect(page.locator('.v-snackbar')).toBeVisible()
   })
 
-  test('fuegt Produkt mit Preis hinzu', async ({ page }) => {
+  test('fügt Produkt mit Preis hinzu', async ({ page }) => {
     await page.locator('.fab-btn').click()
-    await page.locator('.v-dialog input').first().fill('Kaese')
+    await page.locator('.v-dialog input').first().fill('Käse')
     // Fill price input (second input in dialog)
     await page.locator('.v-dialog input[type="number"]').fill('4.99')
-    await page.locator('.v-dialog').getByRole('button', { name: 'Hinzufuegen' }).click()
+    await page.locator('.v-dialog').getByRole('button', { name: 'Hinzufügen' }).click()
     await expect(page.locator('.v-snackbar')).toBeVisible()
   })
 
-  test('Hinzufuegen-Button ist deaktiviert bei leerem Namen', async ({ page }) => {
+  test('Hinzufügen-Button ist deaktiviert bei leerem Namen', async ({ page }) => {
     await page.locator('.fab-btn').click()
-    const addBtn = page.locator('.v-dialog').getByRole('button', { name: 'Hinzufuegen' })
+    const addBtn = page.locator('.v-dialog').getByRole('button', { name: 'Hinzufügen' })
     await expect(addBtn).toBeDisabled()
   })
 
@@ -76,7 +76,7 @@ test.describe('Produkte (Listenansicht)', () => {
     await expect(milchCard.locator('.v-chip').filter({ hasText: '1,49' })).toBeVisible()
   })
 
-  test('blendet Produkt aus mit Bestaetigung', async ({ page }) => {
+  test('blendet Produkt aus mit Bestätigung', async ({ page }) => {
     const deleteBtn = page.locator('.product-card').filter({ hasText: 'Milch' }).locator('button').filter({ has: page.locator('.mdi-delete-outline') })
     await deleteBtn.click()
 
@@ -92,7 +92,7 @@ test.describe('Produkte (Listenansicht)', () => {
     await expect(page.locator('.v-snackbar')).toBeVisible()
   })
 
-  test('oeffnet Bearbeitungsdialog fuer Produkt', async ({ page }) => {
+  test('öffnet Bearbeitungsdialog für Produkt', async ({ page }) => {
     const editBtn = page.locator('.product-card').filter({ hasText: 'Milch' }).locator('button').filter({ has: page.locator('.mdi-pencil') })
     await editBtn.click()
 
@@ -100,7 +100,7 @@ test.describe('Produkte (Listenansicht)', () => {
     await expect(page.locator('.v-dialog')).toBeVisible()
   })
 
-  test('zurueck-Button navigiert zur Startseite', async ({ page }) => {
+  test('zurück-Button navigiert zur Startseite', async ({ page }) => {
     await page.locator('a[href="/"]').or(page.locator('button').filter({ has: page.locator('.mdi-arrow-left') })).first().click()
     await expect(page).toHaveURL('/')
   })

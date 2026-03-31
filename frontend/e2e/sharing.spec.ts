@@ -6,7 +6,7 @@ test.describe('Listen teilen & beitreten', () => {
     await mockApi(page)
   })
 
-  test('oeffnet Share-Dialog und zeigt Zugangscode', async ({ page }) => {
+  test('öffnet Share-Dialog und zeigt Zugangscode', async ({ page }) => {
     await page.goto('/list/list-1')
     await setUserName(page, 'TestUser')
 
@@ -28,12 +28,12 @@ test.describe('Listen teilen & beitreten', () => {
     await expect(urlInput).toHaveValue(/\/join\/ABC123/)
   })
 
-  test('schliesst Share-Dialog', async ({ page }) => {
+  test('schließt Share-Dialog', async ({ page }) => {
     await page.goto('/list/list-1')
     await setUserName(page, 'TestUser')
 
     await page.locator('button').filter({ has: page.locator('.mdi-share-variant') }).click()
-    await page.locator('.v-dialog').getByRole('button', { name: 'Schliessen' }).click()
+    await page.locator('.v-dialog').getByRole('button', { name: 'Schließen' }).click()
     await expect(page.locator('text=Liste teilen')).not.toBeVisible()
   })
 

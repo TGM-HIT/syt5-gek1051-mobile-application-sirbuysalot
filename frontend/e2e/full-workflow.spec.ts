@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test'
 import { mockApi } from './helpers'
 
-test.describe('Vollstaendiger Workflow A-Z', () => {
+test.describe('Vollständiger Workflow A-Z', () => {
   test('kompletter Einkaufsworkflow: Name setzen, Liste erstellen, Produkte verwalten, teilen', async ({ page }) => {
     await mockApi(page)
 
@@ -24,11 +24,11 @@ test.describe('Vollstaendiger Workflow A-Z', () => {
     await page.locator('.v-dialog').getByRole('button', { name: 'Erstellen' }).click()
     await expect(page).toHaveURL(/\/list\//)
 
-    // 5. Zurueck zur Startseite navigieren
+    // 5. Zurück zur Startseite navigieren
     await page.locator('a').filter({ hasText: 'SirBuysALot' }).click()
     await expect(page).toHaveURL('/')
 
-    // 6. Existierende Liste oeffnen
+    // 6. Existierende Liste öffnen
     await page.locator('text=Wocheneinkauf').click()
     await expect(page).toHaveURL(/\/list\/list-1/)
 
@@ -37,24 +37,24 @@ test.describe('Vollstaendiger Workflow A-Z', () => {
     await expect(page.locator('text=Brot')).toBeVisible()
     await expect(page.locator('text=Butter')).toBeVisible()
 
-    // 8. Fortschrittsbalken pruefen
+    // 8. Fortschrittsbalken prüfen
     await expect(page.locator('text=33%')).toBeVisible()
 
-    // 9. Neues Produkt hinzufuegen
+    // 9. Neues Produkt hinzufügen
     await page.locator('.fab-btn').click()
-    await page.locator('.v-dialog input').first().fill('Kaese')
+    await page.locator('.v-dialog input').first().fill('Käse')
     await page.locator('.v-dialog input[type="number"]').fill('5.99')
-    await page.locator('.v-dialog').getByRole('button', { name: 'Hinzufuegen' }).click()
+    await page.locator('.v-dialog').getByRole('button', { name: 'Hinzufügen' }).click()
     await expect(page.locator('.v-snackbar')).toBeVisible()
 
     // 10. Produkt als gekauft markieren
     await page.locator('.product-card').filter({ hasText: 'Milch' }).click()
 
-    // 11. Share-Dialog oeffnen
+    // 11. Share-Dialog öffnen
     await page.locator('button').filter({ has: page.locator('.mdi-share-variant') }).click()
     await expect(page.locator('text=Liste teilen')).toBeVisible()
     await expect(page.locator('text=ABC123')).toBeVisible()
-    await page.locator('.v-dialog').getByRole('button', { name: 'Schliessen' }).click()
+    await page.locator('.v-dialog').getByRole('button', { name: 'Schließen' }).click()
 
     // 12. Suche nutzen
     const searchInput = page.locator('.v-text-field').filter({ hasText: /durchsuchen/i }).locator('input')
@@ -63,7 +63,7 @@ test.describe('Vollstaendiger Workflow A-Z', () => {
     await searchInput.clear()
 
     // 13. Tag-Filter nutzen
-    const filterChip = page.locator('.d-flex.flex-wrap .v-chip').filter({ hasText: 'Kuehlregal' }).first()
+    const filterChip = page.locator('.d-flex.flex-wrap .v-chip').filter({ hasText: 'Kühlregal' }).first()
     if (await filterChip.isVisible().catch(() => false)) {
       await filterChip.click()
       // Reset filter
@@ -80,7 +80,7 @@ test.describe('Vollstaendiger Workflow A-Z', () => {
     await darkToggle.click()
     await darkToggle.click() // Toggle back
 
-    // 15. Zurueck zur Startseite
+    // 15. Zurück zur Startseite
     await page.locator('a').filter({ hasText: 'SirBuysALot' }).click()
     await expect(page).toHaveURL('/')
 
@@ -88,10 +88,10 @@ test.describe('Vollstaendiger Workflow A-Z', () => {
     await expect(page.locator('text=Deine Listen')).toBeVisible()
   })
 
-  test('Beitritts-Workflow: ueber Link beitreten, zur Liste navigieren', async ({ page }) => {
+  test('Beitritts-Workflow: über Link beitreten, zur Liste navigieren', async ({ page }) => {
     await mockApi(page)
 
-    // 1. Join-Seite oeffnen
+    // 1. Join-Seite öffnen
     await page.goto('/join/ABC123')
     // Dismiss name dialog first
     const nameDialog = page.locator('.v-dialog')
@@ -116,7 +116,7 @@ test.describe('Vollstaendiger Workflow A-Z', () => {
     await expect(page.locator('text=Wocheneinkauf')).toBeVisible()
   })
 
-  test('Loeschen-und-Wiederherstellen-Workflow', async ({ page }) => {
+  test('Löschen-und-Wiederherstellen-Workflow', async ({ page }) => {
     await mockApi(page)
     await page.goto('/')
 
@@ -125,7 +125,7 @@ test.describe('Vollstaendiger Workflow A-Z', () => {
     await page.locator('.v-dialog').getByRole('button', { name: 'Speichern' }).click()
 
     // Show deleted lists
-    await page.locator('text=Geloeschte Listen anzeigen').click()
+    await page.locator('text=Gelöschte Listen anzeigen').click()
     await expect(page.locator('text=Alte Liste')).toBeVisible()
 
     // Restore the deleted list

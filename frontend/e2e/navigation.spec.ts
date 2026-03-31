@@ -56,7 +56,7 @@ test.describe('Navigation & App-Shell', () => {
     await expect(page.locator('.v-app-bar').locator('text=TestUser')).toBeVisible()
   })
 
-  test('oeffnet Namenaenderungs-Dialog bei Klick auf Benutzername', async ({ page }) => {
+  test('öffnet Namensänderungs-Dialog bei Klick auf Benutzername', async ({ page }) => {
     await page.goto('/')
     await setUserName(page, 'TestUser')
 

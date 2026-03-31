@@ -22,7 +22,7 @@
         Neu laden
       </v-btn>
       <v-btn variant="text" @click="visible = false">
-        Schliessen
+        Schließen
       </v-btn>
     </template>
   </v-snackbar>

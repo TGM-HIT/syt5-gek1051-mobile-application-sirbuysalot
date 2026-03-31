@@ -43,7 +43,7 @@ test.describe('Einkaufslisten (Home)', () => {
     await expect(page).toHaveURL(/\/list\/list-1/)
   })
 
-  test('oeffnet und schliesst den Erstellungsdialog', async ({ page }) => {
+  test('öffnet und schließt den Erstellungsdialog', async ({ page }) => {
     await page.locator('.fab-btn').click()
     await expect(page.locator('.v-dialog')).toBeVisible()
     await page.locator('.v-dialog').getByRole('button', { name: 'Abbrechen' }).click()
@@ -56,7 +56,7 @@ test.describe('Einkaufslisten (Home)', () => {
     await expect(createBtn).toBeDisabled()
   })
 
-  test('loescht eine Liste mit Bestaetigung', async ({ page }) => {
+  test('löscht eine Liste mit Bestätigung', async ({ page }) => {
     // Click delete on first list
     const deleteBtn = page.locator('.v-card').filter({ hasText: 'Wocheneinkauf' }).locator('[aria-label="delete-outline"]').or(
       page.locator('.v-card').filter({ hasText: 'Wocheneinkauf' }).locator('button').filter({ has: page.locator('.mdi-delete-outline') })
@@ -64,8 +64,8 @@ test.describe('Einkaufslisten (Home)', () => {
     await deleteBtn.first().click()
 
     // Confirmation dialog
-    await expect(page.locator('text=Liste loeschen?')).toBeVisible()
-    await page.getByRole('button', { name: 'Loeschen' }).click()
+    await expect(page.locator('text=Liste löschen?')).toBeVisible()
+    await page.getByRole('button', { name: 'Löschen' }).click()
   })
 
   test('benennt eine Liste um', async ({ page }) => {
@@ -79,9 +79,9 @@ test.describe('Einkaufslisten (Home)', () => {
     await page.locator('.v-dialog').getByRole('button', { name: 'Speichern' }).click()
   })
 
-  test('zeigt geloeschte Listen an und stellt wieder her', async ({ page }) => {
+  test('zeigt gelöschte Listen an und stellt wieder her', async ({ page }) => {
     // Toggle deleted lists
-    await page.locator('text=Geloeschte Listen anzeigen').click()
+    await page.locator('text=Gelöschte Listen anzeigen').click()
     await expect(page.locator('text=Alte Liste')).toBeVisible()
 
     // Restore
