@@ -31,6 +31,33 @@ test.describe('Produktsuche', () => {
     await expect(page.locator('.product-card').filter({ hasText: 'Butter' })).toBeVisible()
   })
 
+  test('zeigt Hinzufuegen-Button wenn Suche keine Treffer hat', async ({ page }) => {
+    const searchInput = page.locator('.v-text-field').filter({ hasText: /durchsuchen/i }).locator('input')
+    await searchInput.fill('Avocado')
+
+    // No product cards visible
+    await expect(page.locator('.product-card')).toHaveCount(0)
+
+    // "Avocado" add button appears
+    const addBtn = page.getByRole('button', { name: /Avocado.*hinzufuegen/i })
+    await expect(addBtn).toBeVisible()
+  })
+
+  test('oeffnet Produkt-Dialog mit Suchbegriff vorausgefuellt', async ({ page }) => {
+    const searchInput = page.locator('.v-text-field').filter({ hasText: /durchsuchen/i }).locator('input')
+    await searchInput.fill('Avocado')
+
+    // Click the add button
+    await page.getByRole('button', { name: /Avocado.*hinzufuegen/i }).click()
+
+    // Dialog opens with "Avocado" pre-filled in the name field
+    const dialog = page.locator('.v-dialog')
+    await expect(dialog).toBeVisible()
+    await expect(dialog.getByText('Neues Produkt')).toBeVisible()
+    const nameInput = dialog.locator('input').first()
+    await expect(nameInput).toHaveValue('Avocado')
+  })
+
   test('leere Suche zeigt alle Produkte', async ({ page }) => {
     const searchInput = page.locator('.v-text-field').filter({ hasText: /durchsuchen/i }).locator('input')
     await searchInput.fill('Milch')

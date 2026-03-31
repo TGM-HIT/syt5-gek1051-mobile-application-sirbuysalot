@@ -298,6 +298,26 @@
           </div>
         </template>
 
+        <!-- No search results → create product -->
+        <v-card
+          v-if="!loading && searchQuery && searchQuery.trim() && filteredProducts.length === 0"
+          class="pa-6 text-center mb-4"
+          border
+        >
+          <v-icon icon="mdi-magnify-close" size="48" color="grey-lighten-1" class="mb-3" />
+          <div class="text-body-1 text-medium-emphasis mb-1">
+            Kein Produkt mit "<strong>{{ searchQuery.trim() }}</strong>" gefunden
+          </div>
+          <v-btn
+            color="primary"
+            prepend-icon="mdi-plus"
+            class="mt-3"
+            @click="addFromSearch"
+          >
+            "{{ searchQuery.trim() }}" hinzufuegen
+          </v-btn>
+        </v-card>
+
         <!-- Empty state -->
         <v-card v-if="!loading && products.length === 0" class="pa-8 text-center" border>
           <v-icon icon="mdi-cart-outline" size="80" color="grey-lighten-1" class="mb-4" />
@@ -541,6 +561,12 @@ async function onDeleteTag(tagId: string) {
 function copyShareUrl() {
   navigator.clipboard.writeText(shareUrl.value)
   showSnackbar('Link kopiert!', 'info', 'mdi-content-copy')
+}
+
+function addFromSearch() {
+  newProductName.value = searchQuery.value.trim()
+  searchQuery.value = ''
+  showAdd.value = true
 }
 
 async function onAddProduct() {
