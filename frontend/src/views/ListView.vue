@@ -1,19 +1,19 @@
 <template>
-  <v-container class="py-6">
+  <v-container class="py-4 py-sm-6">
     <v-row justify="center">
       <v-col cols="12" sm="10" md="8" lg="6">
         <!-- Header -->
-        <div class="d-flex align-center mb-6">
+        <div class="d-flex align-center mb-4 mb-sm-6">
           <v-btn
             icon="mdi-arrow-left"
             variant="tonal"
-            size="small"
+            :size="smAndDown ? 'x-small' : 'small'"
             to="/"
-            class="mr-3"
+            class="mr-2 mr-sm-3"
           />
-          <div class="flex-grow-1">
-            <h1 class="text-h4 font-weight-bold">{{ listName }}</h1>
-            <div class="text-body-2 text-medium-emphasis mt-1">
+          <div class="flex-grow-1 min-width-0">
+            <h1 :class="smAndDown ? 'text-h6' : 'text-h4'" class="font-weight-bold text-truncate">{{ listName }}</h1>
+            <div class="text-caption text-sm-body-2 text-medium-emphasis mt-1">
               {{ activeProducts.length }} Produkte
               <span v-if="purchasedCount > 0" class="ml-1">
                 · {{ purchasedCount }} erledigt
@@ -23,7 +23,7 @@
           <v-btn
             icon="mdi-share-variant"
             variant="tonal"
-            size="small"
+            :size="smAndDown ? 'x-small' : 'small'"
             color="primary"
             @click="showShareDialog = true"
           />
@@ -38,7 +38,7 @@
             </v-card-title>
             <v-card-text>
               <p class="text-body-2 text-medium-emphasis mb-3">
-                Teile diesen Link, damit andere der Liste beitreten koennen:
+                Teile diesen Link, damit andere der Liste beitreten können:
               </p>
               <v-text-field
                 :model-value="shareUrl"
@@ -57,13 +57,13 @@
             </v-card-text>
             <v-card-actions>
               <v-spacer />
-              <v-btn variant="text" @click="showShareDialog = false">Schliessen</v-btn>
+              <v-btn variant="text" @click="showShareDialog = false">Schließen</v-btn>
             </v-card-actions>
           </v-card>
         </v-dialog>
 
         <!-- Progress -->
-        <v-card v-if="products.length > 0" class="mb-5 pa-4" border>
+        <v-card v-if="products.length > 0" class="mb-4 mb-sm-5 pa-3 pa-sm-4" border>
           <div class="d-flex align-center justify-space-between mb-2">
             <span class="text-body-2 font-weight-medium">Fortschritt</span>
             <span class="text-body-2 font-weight-bold text-primary">
@@ -80,7 +80,7 @@
         </v-card>
 
         <!-- Cost summary -->
-        <v-card v-if="totalCost > 0" class="mb-5 pa-4" border>
+        <v-card v-if="totalCost > 0" class="mb-4 mb-sm-5 pa-3 pa-sm-4" border>
           <div class="d-flex align-center mb-2">
             <v-icon icon="mdi-cash-register" color="primary" class="mr-2" />
             <span class="text-body-2 font-weight-medium">Kosten</span>
@@ -168,16 +168,16 @@
             border
             @click="onTogglePurchase(product)"
           >
-            <div class="d-flex align-center pa-4">
+            <div class="d-flex align-center pa-3 pa-sm-4">
               <v-checkbox-btn
                 :model-value="product.purchased"
                 :color="product.purchased ? 'success' : 'primary'"
-                class="mr-3 flex-shrink-0"
+                class="mr-2 mr-sm-3 flex-shrink-0"
               />
 
               <div class="flex-grow-1 min-width-0">
                 <div
-                  class="text-subtitle-1 font-weight-medium"
+                  class="text-body-2 text-sm-subtitle-1 font-weight-medium text-truncate"
                   :class="{ 'text-decoration-line-through text-medium-emphasis': product.purchased }"
                 >
                   {{ product.name }}
@@ -226,7 +226,7 @@
                 variant="text"
                 size="x-small"
                 color="grey"
-                class="ml-1"
+                class="ml-1 d-none d-sm-inline-flex"
                 @click.stop="openEditDialog(product)"
               />
 
@@ -236,14 +236,33 @@
                 variant="text"
                 size="x-small"
                 color="error"
-                class="ml-1"
+                class="ml-1 d-none d-sm-inline-flex"
                 @click.stop="confirmDelete(product)"
               />
+
+              <!-- Mobile: combined menu -->
+              <v-menu location="start">
+                <template #activator="{ props }">
+                  <v-btn
+                    v-bind="props"
+                    icon="mdi-dots-vertical"
+                    variant="text"
+                    size="x-small"
+                    color="grey"
+                    class="ml-1 d-sm-none"
+                    @click.stop
+                  />
+                </template>
+                <v-list density="compact">
+                  <v-list-item prepend-icon="mdi-pencil" title="Bearbeiten" @click="openEditDialog(product)" />
+                  <v-list-item prepend-icon="mdi-delete-outline" title="Ausblenden" class="text-error" @click="confirmDelete(product)" />
+                </v-list>
+              </v-menu>
 
               <!-- Drag handle -->
               <v-icon
                 icon="mdi-drag"
-                class="ml-1 drag-handle"
+                class="ml-1 drag-handle d-none d-sm-inline-flex"
                 color="grey"
                 size="small"
                 @click.stop
@@ -314,7 +333,7 @@
             class="mt-3"
             @click="addFromSearch"
           >
-            "{{ searchQuery.trim() }}" hinzufuegen
+            "{{ searchQuery.trim() }}" hinzufügen
           </v-btn>
         </v-card>
 
@@ -323,10 +342,10 @@
           <v-icon icon="mdi-cart-outline" size="80" color="grey-lighten-1" class="mb-4" />
           <div class="text-h6 text-medium-emphasis mb-2">Liste ist leer</div>
           <div class="text-body-2 text-medium-emphasis mb-6">
-            Fuege das erste Produkt hinzu!
+            Füge das erste Produkt hinzu!
           </div>
           <v-btn color="primary" prepend-icon="mdi-plus" size="large" @click="showAdd = true">
-            Produkt hinzufuegen
+            Produkt hinzufügen
           </v-btn>
         </v-card>
       </v-col>
@@ -384,7 +403,7 @@
             prepend-icon="mdi-check"
             @click="onAddProduct"
           >
-            Hinzufuegen
+            Hinzufügen
           </v-btn>
         </v-card-actions>
       </v-card>
@@ -403,7 +422,7 @@
       <v-card class="pa-4">
         <v-card-title class="text-h6">Produkt ausblenden?</v-card-title>
         <v-card-text>
-          "{{ deleteTarget?.name }}" wird ausgeblendet. Du kannst es spaeter wiederherstellen.
+          "{{ deleteTarget?.name }}" wird ausgeblendet. Du kannst es später wiederherstellen.
         </v-card-text>
         <v-card-actions>
           <v-spacer />
@@ -424,8 +443,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, inject, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { ref, computed, inject, onMounted, onUnmounted, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { useDisplay } from 'vuetify'
 import { useProducts } from '@/composables/useProducts'
 import { useUser } from '@/composables/useUser'
 import { listService } from '@/services/listService'
@@ -437,11 +457,20 @@ import draggable from 'vuedraggable'
 import type { Product } from '@/types'
 
 const route = useRoute()
+const router = useRouter()
+const { smAndDown } = useDisplay()
 const listId = route.params.id as string
 const { displayName } = useUser()
 const showSnackbar = inject<(text: string, color?: string, icon?: string) => void>('showSnackbar')!
 
-const { products, deletedProducts, loading, error, fetchProducts, fetchDeletedProducts, addProduct, updateProduct, togglePurchase, removeProduct, restoreProduct } = useProducts(listId)
+const { products, deletedProducts, loading, error, listGone, fetchProducts, fetchDeletedProducts, addProduct, updateProduct, togglePurchase, removeProduct, restoreProduct } = useProducts(listId)
+
+watch(listGone, (gone) => {
+  if (gone) {
+    showSnackbar('Diese Liste wurde gelöscht', 'error', 'mdi-delete-alert')
+    router.push('/')
+  }
+})
 const { tags: allTags, fetchTags, createTag, removeTag: deleteTag } = useTags(listId)
 
 const listName = ref('...')
@@ -528,6 +557,8 @@ const shareUrl = computed(() => {
   return `${window.location.origin}/join/${accessCode.value}`
 })
 
+let pollInterval: ReturnType<typeof setInterval> | null = null
+
 onMounted(async () => {
   try {
     const list = await listService.getById(listId)
@@ -538,6 +569,23 @@ onMounted(async () => {
   }
   fetchProducts()
   fetchTags()
+
+  // Auto-refresh every 5 seconds for real-time sync
+  pollInterval = setInterval(async () => {
+    try {
+      await listService.getById(listId)
+      fetchProducts()
+    } catch {
+      // List was deleted — redirect home
+      showSnackbar('Diese Liste wurde gelöscht', 'error', 'mdi-delete-alert')
+      if (pollInterval) clearInterval(pollInterval)
+      router.push('/')
+    }
+  }, 5000)
+})
+
+onUnmounted(() => {
+  if (pollInterval) clearInterval(pollInterval)
 })
 
 function toggleTagFilter(tagId: string) {
@@ -579,11 +627,11 @@ async function onAddProduct() {
       price: newProductPrice.value ?? null,
     })
     showAdd.value = false
-    showSnackbar(`"${name}" hinzugefuegt!`)
+    showSnackbar(`"${name}" hinzugefügt!`)
     newProductName.value = ''
     newProductPrice.value = undefined
   } catch {
-    error.value = 'Fehler beim Hinzufuegen'
+    error.value = 'Fehler beim Hinzufügen'
   } finally {
     adding.value = false
   }

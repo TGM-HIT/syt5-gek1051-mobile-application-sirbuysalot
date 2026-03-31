@@ -1,10 +1,10 @@
 <template>
   <v-container class="py-8">
     <!-- Hero -->
-    <div class="text-center mb-8">
-      <v-icon icon="mdi-cart-variant" size="64" color="primary" class="mb-4" />
-      <h1 class="text-h3 font-weight-bold mb-2">Deine Listen</h1>
-      <p class="text-body-1 text-medium-emphasis">
+    <div class="text-center mb-6 mb-sm-8">
+      <v-icon icon="mdi-cart-variant" :size="smAndDown ? 48 : 64" color="primary" class="mb-3 mb-sm-4" />
+      <h1 :class="smAndDown ? 'text-h5' : 'text-h3'" class="font-weight-bold mb-2">Deine Listen</h1>
+      <p class="text-body-2 text-sm-body-1 text-medium-emphasis">
         Erstelle und teile Einkaufslisten mit deinem Team.
       </p>
     </div>
@@ -27,17 +27,17 @@
             border
             hover
           >
-            <div class="d-flex align-center pa-4">
-              <v-avatar color="primary" variant="tonal" size="48" class="mr-4">
-                <v-icon icon="mdi-format-list-checks" />
+            <div class="d-flex align-center pa-3 pa-sm-4">
+              <v-avatar color="primary" variant="tonal" :size="smAndDown ? 40 : 48" class="mr-3 mr-sm-4">
+                <v-icon icon="mdi-format-list-checks" :size="smAndDown ? 20 : 24" />
               </v-avatar>
 
-              <div class="flex-grow-1">
-                <div class="text-subtitle-1 font-weight-bold">{{ list.name }}</div>
-                <div class="text-body-2 text-medium-emphasis">
+              <div class="flex-grow-1 min-width-0">
+                <div class="text-subtitle-2 text-sm-subtitle-1 font-weight-bold text-truncate">{{ list.name }}</div>
+                <div class="text-caption text-sm-body-2 text-medium-emphasis">
                   <v-icon icon="mdi-package-variant" size="14" class="mr-1" />
                   {{ list.products?.length ?? 0 }} Produkte
-                  <span v-if="(list.users?.length ?? 0) > 0" class="ml-3">
+                  <span v-if="(list.users?.length ?? 0) > 0" class="ml-2 ml-sm-3">
                     <v-icon icon="mdi-account-group" size="14" class="mr-1" />
                     {{ list.users.length }} Teilnehmer
                   </span>
@@ -47,25 +47,25 @@
               <v-btn
                 icon="mdi-content-copy"
                 variant="text"
-                size="small"
+                :size="smAndDown ? 'x-small' : 'small'"
                 color="grey"
                 @click.prevent="onDuplicateList(list)"
               />
               <v-btn
                 icon="mdi-pencil"
                 variant="text"
-                size="small"
+                :size="smAndDown ? 'x-small' : 'small'"
                 color="grey"
                 @click.prevent="openEditDialog(list)"
               />
               <v-btn
                 icon="mdi-delete-outline"
                 variant="text"
-                size="small"
+                :size="smAndDown ? 'x-small' : 'small'"
                 color="error"
                 @click.prevent="confirmDeleteList(list)"
               />
-              <v-icon icon="mdi-chevron-right" color="grey" />
+              <v-icon icon="mdi-chevron-right" color="grey" size="small" />
             </div>
           </v-card>
         </transition-group>
@@ -74,7 +74,7 @@
         <div class="d-flex align-center mt-6 mb-3">
           <v-switch
             v-model="showDeleted"
-            label="Geloeschte Listen anzeigen"
+            label="Gelöschte Listen anzeigen"
             density="compact"
             hide-details
             color="warning"
@@ -114,7 +114,7 @@
           </v-card>
 
           <v-card v-if="deletedLists.length === 0" class="pa-6 text-center" border variant="outlined">
-            <div class="text-body-2 text-medium-emphasis">Keine geloeschten Listen vorhanden.</div>
+            <div class="text-body-2 text-medium-emphasis">Keine gelöschten Listen vorhanden.</div>
           </v-card>
         </template>
 
@@ -155,7 +155,7 @@
         <v-card-text class="px-6">
           <v-text-field
             v-model="newListName"
-            label="Wie soll die Liste heissen?"
+            label="Wie soll die Liste heißen?"
             placeholder="z.B. Wocheneinkauf"
             prepend-inner-icon="mdi-format-list-bulleted"
             autofocus
@@ -185,18 +185,18 @@
       <v-card class="pa-2">
         <v-card-title class="text-h6 font-weight-bold pt-4 px-6">
           <v-icon icon="mdi-delete-alert" color="error" class="mr-2" />
-          Liste loeschen?
+          Liste löschen?
         </v-card-title>
         <v-card-text class="px-6">
           <p class="text-body-2">
-            Soll die Liste <strong>"{{ deleteTarget?.name }}"</strong> wirklich geloescht werden?
-            Die Liste kann spaeter wiederhergestellt werden.
+            Soll die Liste <strong>"{{ deleteTarget?.name }}"</strong> wirklich gelöscht werden?
+            Die Liste kann später wiederhergestellt werden.
           </p>
         </v-card-text>
         <v-card-actions class="px-6 pb-4">
           <v-spacer />
           <v-btn variant="text" @click="showDeleteConfirm = false">Abbrechen</v-btn>
-          <v-btn color="error" prepend-icon="mdi-delete" @click="onDeleteList">Loeschen</v-btn>
+          <v-btn color="error" prepend-icon="mdi-delete" @click="onDeleteList">Löschen</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -238,12 +238,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, inject, onMounted } from 'vue'
+import { ref, inject, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useDisplay } from 'vuetify'
 import { useShoppingLists } from '@/composables/useShoppingLists'
 import type { ShoppingList } from '@/types'
 
 const router = useRouter()
+const { smAndDown } = useDisplay()
 const showSnackbar = inject<(text: string, color?: string, icon?: string) => void>('showSnackbar')!
 const { lists, deletedLists, loading, error, fetchLists, createList, updateList, removeList, fetchDeletedLists, restoreList, duplicateList } = useShoppingLists()
 
@@ -260,8 +262,15 @@ const showDeleteConfirm = ref(false)
 const deleteTarget = ref<ShoppingList | null>(null)
 const showDeleted = ref(false)
 
+let pollInterval: ReturnType<typeof setInterval> | null = null
+
 onMounted(() => {
   fetchLists()
+  pollInterval = setInterval(() => fetchLists(), 5000)
+})
+
+onUnmounted(() => {
+  if (pollInterval) clearInterval(pollInterval)
 })
 
 async function onCreateList() {
@@ -315,10 +324,10 @@ async function onDeleteList() {
   try {
     await removeList(deleteTarget.value.id)
     showDeleteConfirm.value = false
-    showSnackbar(`"${deleteTarget.value.name}" geloescht`, 'success', 'mdi-delete-check')
+    showSnackbar(`"${deleteTarget.value.name}" gelöscht`, 'success', 'mdi-delete-check')
     deleteTarget.value = null
   } catch {
-    error.value = 'Fehler beim Loeschen der Liste'
+    error.value = 'Fehler beim Löschen der Liste'
   }
 }
 
@@ -339,6 +348,9 @@ async function onUpdateList() {
 </script>
 
 <style scoped>
+.min-width-0 {
+  min-width: 0;
+}
 .list-card {
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
