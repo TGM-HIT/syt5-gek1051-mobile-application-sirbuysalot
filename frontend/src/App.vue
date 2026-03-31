@@ -106,10 +106,12 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, provide, reactive } from 'vue'
+import { useRoute } from 'vue-router'
 import { useUser } from '@/composables/useUser'
 import { useDarkMode } from '@/composables/useDarkMode'
 import OfflineBanner from '@/components/OfflineBanner.vue'
 
+const route = useRoute()
 const { displayName, isLoggedIn, setDisplayName } = useUser()
 const { isDark, toggle: toggleDarkMode } = useDarkMode()
 
@@ -138,9 +140,10 @@ function showSnackbar(text: string, color = 'success', icon = 'mdi-check-circle'
 provide('showSnackbar', showSnackbar)
 
 onMounted(() => {
-  if (!isLoggedIn()) {
+  const isJoinRoute = route.path.startsWith('/join')
+  if (!isLoggedIn() && !isJoinRoute) {
     showNameDialog.value = true
-  } else {
+  } else if (isLoggedIn()) {
     nameInput.value = displayName()
   }
 })
@@ -174,5 +177,17 @@ function saveName() {
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
+}
+
+/* Global responsive utilities */
+@media (max-width: 600px) {
+  .v-container {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+  .v-dialog > .v-overlay__content {
+    margin: 12px !important;
+    max-width: calc(100% - 24px) !important;
+  }
 }
 </style>
