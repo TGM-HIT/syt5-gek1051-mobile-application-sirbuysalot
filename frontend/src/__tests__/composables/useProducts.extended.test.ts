@@ -51,6 +51,7 @@ describe('useProducts (extended)', () => {
       purchasedAt: '2025-06-01T10:00:00Z',
     })
     vi.mocked(productService.togglePurchase).mockResolvedValue(toggled)
+    vi.mocked(productService.getAll).mockResolvedValue([toggled])
 
     const { products, togglePurchase } = useProducts(listId)
     products.value = [original]
@@ -72,6 +73,7 @@ describe('useProducts (extended)', () => {
       purchasedAt: null,
     })
     vi.mocked(productService.togglePurchase).mockResolvedValue(cleared)
+    vi.mocked(productService.getAll).mockResolvedValue([cleared])
 
     const { products, togglePurchase } = useProducts(listId)
     products.value = [purchased]

@@ -41,10 +41,12 @@ describe('useShoppingLists (extended)', () => {
   })
 
   it('removeList soft-deletes and filters from lists', async () => {
+    const other = makeList({ id: '2', name: 'Other' })
     vi.mocked(listService.remove).mockResolvedValue()
+    vi.mocked(listService.getAll).mockResolvedValue([other])
 
     const { lists, removeList } = useShoppingLists()
-    lists.value = [makeList(), makeList({ id: '2', name: 'Other' })]
+    lists.value = [makeList(), other]
 
     await removeList('1')
 

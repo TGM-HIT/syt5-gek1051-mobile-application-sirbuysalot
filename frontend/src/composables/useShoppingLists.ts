@@ -9,7 +9,9 @@ const error = ref<string | null>(null)
 
 export function useShoppingLists() {
   async function fetchLists() {
-    loading.value = true
+    if (lists.value.length === 0) {
+      loading.value = true
+    }
     error.value = null
     try {
       lists.value = await listService.getAll()
@@ -22,27 +24,26 @@ export function useShoppingLists() {
 
   async function createList(name: string) {
     const created = await listService.create({ name })
-    lists.value.unshift(created)
+    await fetchLists()
     return created
   }
 
   async function updateList(id: string, payload: Partial<ShoppingList>) {
     const updated = await listService.update(id, payload)
-    const idx = lists.value.findIndex((l) => l.id === id)
-    if (idx !== -1) lists.value[idx] = updated
+    await fetchLists()
     return updated
   }
 
   async function removeList(id: string) {
     await listService.remove(id)
-    lists.value = lists.value.filter((l) => l.id !== id)
+    await fetchLists()
   }
 
   async function fetchDeletedLists() {
     try {
       deletedLists.value = await listService.getDeleted()
     } catch (e: any) {
-      error.value = e.message ?? 'Fehler beim Laden der geloeschten Listen'
+      error.value = e.message ?? 'Fehler beim Laden der gelöschten Listen'
     }
   }
 

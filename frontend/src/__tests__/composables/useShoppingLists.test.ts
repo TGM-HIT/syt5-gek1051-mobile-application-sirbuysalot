@@ -71,6 +71,7 @@ describe('useShoppingLists', () => {
   it('createList prepends to the list', async () => {
     const created = makeList({ id: '2', name: 'New List' })
     vi.mocked(listService.create).mockResolvedValue(created)
+    vi.mocked(listService.getAll).mockResolvedValue([created])
 
     const { lists, createList } = useShoppingLists()
     const result = await createList('New List')
@@ -86,6 +87,7 @@ describe('useShoppingLists', () => {
 
     const updated = makeList({ name: 'Updated', version: 2 })
     vi.mocked(listService.update).mockResolvedValue(updated)
+    vi.mocked(listService.getAll).mockResolvedValue([updated])
 
     await updateList('1', { name: 'Updated' })
 
@@ -97,6 +99,7 @@ describe('useShoppingLists', () => {
     lists.value = [makeList()]
 
     vi.mocked(listService.remove).mockResolvedValue()
+    vi.mocked(listService.getAll).mockResolvedValue([])
 
     await removeList('1')
 

@@ -7,13 +7,19 @@ export function useProducts(listId: string) {
   const deletedProducts = ref<Product[]>([])
   const loading = ref(false)
   const error = ref<string | null>(null)
+  const listGone = ref(false)
 
   async function fetchProducts() {
-    loading.value = true
+    if (products.value.length === 0) {
+      loading.value = true
+    }
     error.value = null
     try {
       products.value = await productService.getAll(listId)
     } catch (e: any) {
+      if (e.response?.status === 404) {
+        listGone.value = true
+      }
       error.value = e.message ?? 'Fehler beim Laden der Produkte'
     } finally {
       loading.value = false
@@ -24,20 +30,19 @@ export function useProducts(listId: string) {
     try {
       deletedProducts.value = await productService.getDeleted(listId)
     } catch (e: any) {
-      error.value = e.message ?? 'Fehler beim Laden der geloeschten Produkte'
+      error.value = e.message ?? 'Fehler beim Laden der gelöschten Produkte'
     }
   }
 
   async function addProduct(payload: CreateProductPayload) {
     const created = await productService.create(listId, payload)
-    products.value.push(created)
+    await fetchProducts()
     return created
   }
 
   async function updateProduct(productId: string, payload: UpdateProductPayload) {
     const updated = await productService.update(listId, productId, payload)
-    const idx = products.value.findIndex((p) => p.id === productId)
-    if (idx !== -1) products.value[idx] = updated
+    await fetchProducts()
     return updated
   }
 
@@ -45,8 +50,7 @@ export function useProducts(listId: string) {
     error.value = null
     try {
       const updated = await productService.togglePurchase(listId, productId, purchasedBy)
-      const idx = products.value.findIndex((p) => p.id === productId)
-      if (idx !== -1) products.value[idx] = updated
+      await fetchProducts()
       return updated
     } catch (e: any) {
       error.value = e.message ?? 'Fehler beim Umschalten des Kaufstatus'
@@ -56,12 +60,12 @@ export function useProducts(listId: string) {
 
   async function removeProduct(productId: string) {
     await productService.remove(listId, productId)
-    products.value = products.value.filter((p) => p.id !== productId)
+    await fetchProducts()
   }
 
   async function restoreProduct(productId: string) {
     const restored = await productService.restore(listId, productId)
-    products.value.push(restored)
+    await fetchProducts()
     deletedProducts.value = deletedProducts.value.filter((p) => p.id !== productId)
     return restored
   }
@@ -71,6 +75,7 @@ export function useProducts(listId: string) {
     deletedProducts,
     loading,
     error,
+    listGone,
     fetchProducts,
     fetchDeletedProducts,
     addProduct,

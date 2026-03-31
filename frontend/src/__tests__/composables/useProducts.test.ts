@@ -72,6 +72,7 @@ describe('useProducts', () => {
   it('addProduct appends to products', async () => {
     const created = makeProduct({ id: '2', name: 'Bread' })
     vi.mocked(productService.create).mockResolvedValue(created)
+    vi.mocked(productService.getAll).mockResolvedValue([created])
 
     const { products, addProduct } = useProducts(listId)
     await addProduct({ name: 'Bread' })
@@ -84,6 +85,7 @@ describe('useProducts', () => {
     const original = makeProduct()
     const updated = makeProduct({ name: 'Oat Milk', version: 2 })
     vi.mocked(productService.update).mockResolvedValue(updated)
+    vi.mocked(productService.getAll).mockResolvedValue([updated])
 
     const { products, updateProduct } = useProducts(listId)
     products.value = [original]
@@ -96,6 +98,7 @@ describe('useProducts', () => {
     const original = makeProduct()
     const toggled = makeProduct({ purchased: true, purchasedBy: 'Alice' })
     vi.mocked(productService.togglePurchase).mockResolvedValue(toggled)
+    vi.mocked(productService.getAll).mockResolvedValue([toggled])
 
     const { products, togglePurchase } = useProducts(listId)
     products.value = [original]
@@ -108,6 +111,7 @@ describe('useProducts', () => {
   it('removeProduct filters out the product', async () => {
     const product = makeProduct()
     vi.mocked(productService.remove).mockResolvedValue()
+    vi.mocked(productService.getAll).mockResolvedValue([])
 
     const { products, removeProduct } = useProducts(listId)
     products.value = [product]
