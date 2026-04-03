@@ -105,6 +105,7 @@ jobs:
       - name: Frontend Test Report
         uses: dorny/test-reporter@v1
         if: always()
+        continue-on-error: true
         with:
           name: Frontend Tests (100)
           path: frontend/test-results/junit.xml
@@ -152,6 +153,7 @@ jobs:
       - name: E2E Test Report
         uses: dorny/test-reporter@v1
         if: always()
+        continue-on-error: true
         with:
           name: E2E Tests
           path: frontend/e2e-results/junit.xml
@@ -337,6 +339,7 @@ jobs:
       - name: Backend Test Report
         uses: dorny/test-reporter@v1
         if: always()
+        continue-on-error: true
         with:
           name: Backend Tests (100)
           path: backend/target/surefire-reports/TEST-*.xml
