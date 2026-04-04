@@ -192,7 +192,9 @@
                     variant="tonal"
                     color="secondary"
                     label
+                    class="tag-chip"
                   >
+                    <v-icon icon="mdi-tag" size="10" class="mr-1" />
                     {{ tag.name }}
                   </v-chip>
                 </div>
@@ -414,6 +416,7 @@
       v-model="showEdit"
       :product="editProduct"
       :saving="editSaving"
+      :available-tags="allTags"
       @save="onSaveEdit"
     />
 
@@ -471,7 +474,7 @@ watch(listGone, (gone) => {
     router.push('/')
   }
 })
-const { tags: allTags, fetchTags, createTag, removeTag: deleteTag } = useTags(listId)
+const { tags: allTags, fetchTags, createTag, removeTag: deleteTag, setProductTags } = useTags(listId)
 
 const listName = ref('...')
 const accessCode = ref('')
@@ -575,6 +578,7 @@ onMounted(async () => {
     try {
       await listService.getById(listId)
       fetchProducts()
+      fetchTags()
     } catch {
       // List was deleted — redirect home
       showSnackbar('Diese Liste wurde gelöscht', 'error', 'mdi-delete-alert')
@@ -650,11 +654,13 @@ function openEditDialog(product: Product) {
   showEdit.value = true
 }
 
-async function onSaveEdit(payload: { name: string; price: number | null }) {
+async function onSaveEdit(payload: { name: string; price: number | null; tagIds: string[] }) {
   if (!editProduct.value) return
   editSaving.value = true
   try {
-    await updateProduct(editProduct.value.id, payload)
+    await updateProduct(editProduct.value.id, { name: payload.name, price: payload.price })
+    await setProductTags(editProduct.value.id, payload.tagIds)
+    await fetchProducts()
     showEdit.value = false
     showSnackbar('Produkt aktualisiert')
   } catch {
@@ -758,5 +764,10 @@ function formatTime(dateStr: string | null): string {
   opacity: 0.4;
   background: rgb(var(--v-theme-primary));
   border-radius: 8px;
+}
+
+.tag-chip {
+  font-weight: 500;
+  letter-spacing: 0.02em;
 }
 </style>

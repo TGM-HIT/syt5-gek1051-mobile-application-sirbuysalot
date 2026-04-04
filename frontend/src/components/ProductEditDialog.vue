@@ -23,6 +23,20 @@
           step="0.01"
           min="0"
           hide-details="auto"
+          class="mb-4"
+        />
+        <v-select
+          v-if="availableTags.length > 0"
+          v-model="selectedTagIds"
+          :items="availableTags"
+          item-title="name"
+          item-value="id"
+          label="Tags"
+          prepend-inner-icon="mdi-tag-multiple"
+          multiple
+          chips
+          closable-chips
+          hide-details
         />
       </v-card-text>
       <v-card-actions class="px-6 pb-4">
@@ -44,26 +58,29 @@
 
 <script setup lang="ts">
 import { ref, watch } from 'vue'
-import type { Product } from '@/types'
+import type { Product, Tag } from '@/types'
 
 const props = defineProps<{
   modelValue: boolean
   product: Product | null
   saving: boolean
+  availableTags: Tag[]
 }>()
 
 const emit = defineEmits<{
   'update:modelValue': [value: boolean]
-  save: [payload: { name: string; price: number | null }]
+  save: [payload: { name: string; price: number | null; tagIds: string[] }]
 }>()
 
 const localName = ref('')
 const localPrice = ref<number | undefined>(undefined)
+const selectedTagIds = ref<string[]>([])
 
 watch(() => props.product, (p) => {
   if (p) {
     localName.value = p.name
     localPrice.value = p.price ?? undefined
+    selectedTagIds.value = p.tags?.map(t => t.id) ?? []
   }
 })
 
@@ -71,6 +88,7 @@ function onSave() {
   emit('save', {
     name: localName.value.trim(),
     price: localPrice.value ?? null,
+    tagIds: selectedTagIds.value,
   })
 }
 </script>
