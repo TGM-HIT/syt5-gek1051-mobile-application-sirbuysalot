@@ -48,7 +48,7 @@ public class Product {
     @JsonIgnore
     private ShoppingList shoppingList;
 
-    @ManyToMany
+    @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
             name = "product_tags",
             joinColumns = @JoinColumn(name = "product_id"),

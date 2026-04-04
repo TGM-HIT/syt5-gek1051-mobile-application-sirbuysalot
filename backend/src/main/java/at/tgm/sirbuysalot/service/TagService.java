@@ -6,6 +6,7 @@ import at.tgm.sirbuysalot.repository.ShoppingListRepository;
 import at.tgm.sirbuysalot.repository.TagRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.UUID;
@@ -40,7 +41,9 @@ public class TagService {
         return tagRepository.save(tag);
     }
 
+    @Transactional
     public void delete(UUID id) {
+        tagRepository.removeTagFromAllProducts(id);
         tagRepository.deleteById(id);
     }
 }

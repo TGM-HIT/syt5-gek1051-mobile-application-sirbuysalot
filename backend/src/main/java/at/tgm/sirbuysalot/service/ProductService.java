@@ -44,8 +44,8 @@ public class ProductService {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Product not found"));
 
-        // Version conflict check: client must send the version it based changes on
-        if (updated.getVersion() > 0 && updated.getVersion() < product.getVersion()) {
+        // Version conflict check: only enforce if client explicitly sends a version > 1
+        if (updated.getVersion() != null && updated.getVersion() > 1 && updated.getVersion() < product.getVersion()) {
             throw new ConflictException("Produkt", product.getVersion(), updated.getVersion());
         }
 
