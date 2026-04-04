@@ -2,14 +2,16 @@
   <v-app>
     <v-app-bar elevation="0" class="app-bar-gradient">
       <template #prepend>
-        <v-avatar color="white" size="36" class="ml-2">
-          <v-icon color="primary" icon="mdi-cart" />
-        </v-avatar>
+        <div class="d-flex align-center ml-2">
+          <div class="logo-mark">
+            <v-icon color="white" icon="mdi-crown" size="18" />
+          </div>
+        </div>
       </template>
 
       <v-app-bar-title>
-        <router-link to="/" class="text-white text-decoration-none font-weight-bold">
-          SirBuysALot
+        <router-link to="/" class="text-white text-decoration-none d-flex align-center">
+          <span class="logo-text">Sir</span><span class="logo-text-bold">BuysALot</span>
         </router-link>
       </v-app-bar-title>
 
@@ -159,7 +161,32 @@ function saveName() {
 
 <style>
 .app-bar-gradient {
-  background: linear-gradient(135deg, #4A90D9 0%, #6C63FF 100%) !important;
+  background: linear-gradient(135deg, #1B6B4A 0%, #145238 60%, #0F3D2A 100%) !important;
+}
+
+.logo-mark {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.15);
+  border: 1.5px solid rgba(255, 255, 255, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(4px);
+}
+
+.logo-text {
+  font-weight: 300;
+  font-size: 1.1rem;
+  letter-spacing: 0.02em;
+  opacity: 0.9;
+}
+
+.logo-text-bold {
+  font-weight: 700;
+  font-size: 1.1rem;
+  letter-spacing: -0.01em;
 }
 
 .user-chip {
@@ -177,6 +204,16 @@ function saveName() {
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
+}
+
+/* Refined card borders */
+.v-card--variant-elevated,
+.v-card--variant-flat {
+  border: 1px solid rgba(0, 0, 0, 0.06) !important;
+}
+.v-theme--dark .v-card--variant-elevated,
+.v-theme--dark .v-card--variant-flat {
+  border-color: rgba(255, 255, 255, 0.08) !important;
 }
 
 /* Global responsive utilities */

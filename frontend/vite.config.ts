@@ -11,8 +11,8 @@ export default defineConfig({
       manifest: {
         name: 'SirBuysALot',
         short_name: 'SBA',
-        theme_color: '#1976D2',
-        background_color: '#ffffff',
+        theme_color: '#1B6B4A',
+        background_color: '#F7F6F3',
         display: 'standalone',
         icons: [
           {

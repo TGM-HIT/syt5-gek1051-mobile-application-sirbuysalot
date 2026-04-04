@@ -2,7 +2,9 @@
   <v-container class="py-8">
     <!-- Hero -->
     <div class="text-center mb-6 mb-sm-8">
-      <v-icon icon="mdi-cart-variant" :size="smAndDown ? 48 : 64" color="primary" class="mb-3 mb-sm-4" />
+      <div class="hero-icon-wrap mx-auto mb-3 mb-sm-4">
+        <v-icon icon="mdi-crown" :size="smAndDown ? 28 : 36" color="white" />
+      </div>
       <h1 :class="smAndDown ? 'text-h5' : 'text-h3'" class="font-weight-bold mb-2">Deine Listen</h1>
       <p class="text-body-2 text-sm-body-1 text-medium-emphasis">
         Erstelle und teile Einkaufslisten mit deinem Team.
@@ -348,6 +350,17 @@ async function onUpdateList() {
 </script>
 
 <style scoped>
+.hero-icon-wrap {
+  width: 64px;
+  height: 64px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, #1B6B4A 0%, #145238 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 24px rgba(27, 107, 74, 0.25);
+}
+
 .min-width-0 {
   min-width: 0;
 }
