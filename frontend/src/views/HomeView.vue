@@ -244,9 +244,12 @@ import { ref, inject, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useDisplay } from 'vuetify'
 import { useShoppingLists } from '@/composables/useShoppingLists'
+import { useUser } from '@/composables/useUser'
+import { userService } from '@/services/userService'
 import type { ShoppingList } from '@/types'
 
 const router = useRouter()
+const { displayName } = useUser()
 const { smAndDown } = useDisplay()
 const showSnackbar = inject<(text: string, color?: string, icon?: string) => void>('showSnackbar')!
 const { lists, deletedLists, loading, error, fetchLists, createList, updateList, removeList, fetchDeletedLists, restoreList, duplicateList } = useShoppingLists()
@@ -281,6 +284,7 @@ async function onCreateList() {
   creating.value = true
   try {
     const created = await createList(name)
+    await userService.joinList(created.id, displayName())
     showCreate.value = false
     newListName.value = ''
     showSnackbar(`"${created.name}" erstellt!`)

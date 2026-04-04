@@ -113,7 +113,7 @@
         />
 
         <!-- Tag filter chips -->
-        <div v-if="allTags.length > 0" class="d-flex flex-wrap ga-2 mb-4">
+        <div class="d-flex flex-wrap ga-2 mb-4">
           <v-chip
             v-for="tag in allTags"
             :key="tag.id"

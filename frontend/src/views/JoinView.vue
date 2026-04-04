@@ -74,7 +74,7 @@ import { useUser } from '@/composables/useUser'
 
 const route = useRoute()
 const accessCode = route.params.code as string
-const { setDisplayName, displayName, isLoggedIn } = useUser()
+const { setDisplayName, displayName, isLoggedIn, addMyList } = useUser()
 
 const loading = ref(true)
 const error = ref<string | null>(null)
@@ -110,6 +110,7 @@ async function onJoin() {
   try {
     await userService.joinList(listId.value, name)
     setDisplayName(name)
+    addMyList(listId.value)
     joined.value = true
   } catch {
     error.value = 'Fehler beim Beitreten. Bitte versuche es erneut.'

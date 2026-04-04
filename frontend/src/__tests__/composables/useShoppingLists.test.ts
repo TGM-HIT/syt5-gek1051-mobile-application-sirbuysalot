@@ -1,3 +1,4 @@
+import { ref } from 'vue'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { useShoppingLists } from '@/composables/useShoppingLists'
 import { listService } from '@/services/listService'
@@ -10,6 +11,15 @@ vi.mock('@/services/listService', () => ({
     update: vi.fn(),
     remove: vi.fn(),
   },
+}))
+
+const mockMyListIds = ref<string[]>([])
+vi.mock('@/composables/useUser', () => ({
+  useUser: () => ({
+    myListIds: mockMyListIds,
+    addMyList: (id: string) => { if (!mockMyListIds.value.includes(id)) mockMyListIds.value.push(id) },
+    removeMyList: (id: string) => { mockMyListIds.value = mockMyListIds.value.filter(i => i !== id) },
+  }),
 }))
 
 function makeList(overrides: Partial<ShoppingList> = {}): ShoppingList {
@@ -30,6 +40,7 @@ function makeList(overrides: Partial<ShoppingList> = {}): ShoppingList {
 describe('useShoppingLists', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mockMyListIds.value = []
     const { lists, loading, error } = useShoppingLists()
     lists.value = []
     loading.value = false
@@ -37,6 +48,7 @@ describe('useShoppingLists', () => {
   })
 
   it('fetchLists populates the lists ref', async () => {
+    mockMyListIds.value = ['1']
     const mockLists = [makeList()]
     vi.mocked(listService.getAll).mockResolvedValue(mockLists)
 
@@ -82,6 +94,7 @@ describe('useShoppingLists', () => {
   })
 
   it('updateList replaces the list in the array', async () => {
+    mockMyListIds.value = ['1']
     const { lists, updateList } = useShoppingLists()
     lists.value = [makeList()]
 

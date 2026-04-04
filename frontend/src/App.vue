@@ -107,7 +107,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, provide, reactive } from 'vue'
+import { ref, computed, onMounted, provide, reactive, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useUser } from '@/composables/useUser'
 import { useDarkMode } from '@/composables/useDarkMode'
@@ -142,11 +142,16 @@ function showSnackbar(text: string, color = 'success', icon = 'mdi-check-circle'
 provide('showSnackbar', showSnackbar)
 
 onMounted(() => {
-  const isJoinRoute = route.path.startsWith('/join')
-  if (!isLoggedIn() && !isJoinRoute) {
-    showNameDialog.value = true
-  } else if (isLoggedIn()) {
+  if (isLoggedIn()) {
     nameInput.value = displayName()
+  } else if (!route.path.startsWith('/join')) {
+    showNameDialog.value = true
+  }
+})
+
+watch(() => route.path, (path) => {
+  if (path.startsWith('/join')) {
+    showNameDialog.value = false
   }
 })
 
