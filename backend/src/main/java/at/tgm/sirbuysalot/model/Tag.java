@@ -31,5 +31,7 @@ public class Tag {
     @ManyToMany(mappedBy = "tags")
     @JsonIgnore
     @Builder.Default
+    @EqualsAndHashCode.Exclude
+    @ToString.Exclude
     private Set<Product> products = new HashSet<>();
 }

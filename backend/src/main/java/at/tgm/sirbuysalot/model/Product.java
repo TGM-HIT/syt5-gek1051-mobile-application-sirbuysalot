@@ -46,6 +46,8 @@ public class Product {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "shopping_list_id")
     @JsonIgnore
+    @EqualsAndHashCode.Exclude
+    @ToString.Exclude
     private ShoppingList shoppingList;
 
     @ManyToMany(fetch = FetchType.EAGER)
@@ -55,6 +57,8 @@ public class Product {
             inverseJoinColumns = @JoinColumn(name = "tag_id")
     )
     @Builder.Default
+    @EqualsAndHashCode.Exclude
+    @ToString.Exclude
     private Set<Tag> tags = new HashSet<>();
 
     @PrePersist
