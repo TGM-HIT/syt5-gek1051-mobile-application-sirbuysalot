@@ -98,15 +98,15 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run tests with coverage
-        run: npx vitest run --coverage --reporter=default --reporter=html --outputFile.html=test-results/html/index.html
+      - name: Run tests
+        run: npx vitest run --reporter=verbose --reporter=html --outputFile.html=test-results/index.html
 
       - name: Upload frontend test report
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: frontend-html-report
-          path: frontend/test-results/html/
+          path: frontend/test-results/
 
   # ──────────────────────────── E2E ──────────────────────────────────
   frontend-e2e:
@@ -127,18 +127,18 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Install Playwright browsers
-        run: npx playwright install --with-deps chromium
+      - name: Install Playwright Chromium
+        run: npx playwright install chromium
 
       - name: Run E2E tests
-        run: npx playwright test --project=chromium --reporter=html
+        run: npx playwright test --project=chromium
 
       - name: Upload E2E report
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: e2e-html-report
-          path: frontend/playwright-report/
+          path: frontend/e2e-results/
 
   # ──────────────────────────── Backend ─────────────────────────────
   backend-test:
