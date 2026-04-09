@@ -1,11 +1,13 @@
 import { test, expect } from '@playwright/test'
-import { setUserName, mockApi } from './helpers'
+import { setupLocalStorage, mockApi } from './helpers'
 
 test.describe('Einkaufslisten (Home)', () => {
   test.beforeEach(async ({ page }) => {
     await mockApi(page)
     await page.goto('/')
-    await setUserName(page, 'TestUser')
+    await setupLocalStorage(page, 'TestUser')
+    await page.reload()
+    await page.waitForLoadState('networkidle')
   })
 
   test('zeigt die Startseite mit Titel und Listen', async ({ page }) => {

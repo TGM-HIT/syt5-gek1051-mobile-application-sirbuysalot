@@ -1,11 +1,13 @@
 import { test, expect } from '@playwright/test'
-import { setUserName, mockApi } from './helpers'
+import { setupLocalStorage, mockApi } from './helpers'
 
 test.describe('Offline & PWA', () => {
   test.beforeEach(async ({ page }) => {
     await mockApi(page)
     await page.goto('/')
-    await setUserName(page, 'TestUser')
+    await setupLocalStorage(page, 'TestUser')
+    await page.reload()
+    await page.waitForLoadState('networkidle')
   })
 
   test('App laed erfolgreich', async ({ page }) => {

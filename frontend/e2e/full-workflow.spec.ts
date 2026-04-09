@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { mockApi } from './helpers'
+import { mockApi, setupLocalStorage } from './helpers'
 
 test.describe('Vollständiger Workflow A-Z', () => {
   test('kompletter Einkaufsworkflow: Name setzen, Liste erstellen, Produkte verwalten, teilen', async ({ page }) => {
@@ -7,14 +7,13 @@ test.describe('Vollständiger Workflow A-Z', () => {
 
     // 1. Startseite besuchen
     await page.goto('/')
+    await setupLocalStorage(page, 'Deniz')
+    await page.reload()
+    await page.waitForLoadState('networkidle')
+
     await expect(page.locator('text=SirBuysALot')).toBeVisible()
 
-    // 2. Name setzen (Dialog erscheint automatisch)
-    await page.locator('.v-dialog input').fill('Deniz')
-    await page.locator('.v-dialog').getByRole('button', { name: 'Speichern' }).click()
-    await expect(page.locator('.v-snackbar')).toContainText('Willkommen')
-
-    // 3. Listen werden angezeigt
+    // 2. Listen werden angezeigt
     await expect(page.locator('text=Deine Listen')).toBeVisible()
     await expect(page.locator('text=Wocheneinkauf')).toBeVisible()
 
@@ -93,13 +92,10 @@ test.describe('Vollständiger Workflow A-Z', () => {
 
     // 1. Join-Seite öffnen
     await page.goto('/join/ABC123')
-    // Dismiss name dialog first
-    const nameDialog = page.locator('.v-dialog')
-    if (await nameDialog.isVisible({ timeout: 2000 }).catch(() => false)) {
-      await page.locator('.v-dialog input').fill('GastUser')
-      await page.locator('.v-dialog').getByRole('button', { name: 'Speichern' }).click()
-      await nameDialog.waitFor({ state: 'hidden', timeout: 3000 }).catch(() => {})
-    }
+    await setupLocalStorage(page, 'GastUser')
+    await page.reload()
+    await page.waitForLoadState('networkidle')
+
     await expect(page.locator('text=Liste beitreten')).toBeVisible()
     await expect(page.locator('text=Wocheneinkauf')).toBeVisible()
 
@@ -119,10 +115,9 @@ test.describe('Vollständiger Workflow A-Z', () => {
   test('Löschen-und-Wiederherstellen-Workflow', async ({ page }) => {
     await mockApi(page)
     await page.goto('/')
-
-    // Set name
-    await page.locator('.v-dialog input').fill('Admin')
-    await page.locator('.v-dialog').getByRole('button', { name: 'Speichern' }).click()
+    await setupLocalStorage(page, 'Admin')
+    await page.reload()
+    await page.waitForLoadState('networkidle')
 
     // Show deleted lists
     await page.locator('text=Gelöschte Listen anzeigen').click()

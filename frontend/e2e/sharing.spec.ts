@@ -1,14 +1,20 @@
 import { test, expect } from '@playwright/test'
-import { setUserName, mockApi } from './helpers'
+import { setupLocalStorage, mockApi } from './helpers'
 
 test.describe('Listen teilen & beitreten', () => {
   test.beforeEach(async ({ page }) => {
     await mockApi(page)
   })
 
+  async function setupPage(page: any, path: string, name = 'TestUser') {
+    await page.goto(path)
+    await setupLocalStorage(page, name)
+    await page.reload()
+    await page.waitForLoadState('networkidle')
+  }
+
   test('öffnet Share-Dialog und zeigt Zugangscode', async ({ page }) => {
-    await page.goto('/list/list-1')
-    await setUserName(page, 'TestUser')
+    await setupPage(page, '/list/list-1')
 
     // Click share button
     await page.locator('button').filter({ has: page.locator('.mdi-share-variant') }).click()
@@ -18,8 +24,7 @@ test.describe('Listen teilen & beitreten', () => {
   })
 
   test('zeigt Join-URL im Share-Dialog', async ({ page }) => {
-    await page.goto('/list/list-1')
-    await setUserName(page, 'TestUser')
+    await setupPage(page, '/list/list-1')
 
     await page.locator('button').filter({ has: page.locator('.mdi-share-variant') }).click()
 
@@ -29,8 +34,7 @@ test.describe('Listen teilen & beitreten', () => {
   })
 
   test('schließt Share-Dialog', async ({ page }) => {
-    await page.goto('/list/list-1')
-    await setUserName(page, 'TestUser')
+    await setupPage(page, '/list/list-1')
 
     await page.locator('button').filter({ has: page.locator('.mdi-share-variant') }).click()
     await page.locator('.v-dialog').getByRole('button', { name: 'Schließen' }).click()
@@ -38,8 +42,7 @@ test.describe('Listen teilen & beitreten', () => {
   })
 
   test('Join-Seite zeigt Liste und Beitrittsformular', async ({ page }) => {
-    await page.goto('/join/ABC123')
-    await setUserName(page, 'Test')
+    await setupPage(page, '/join/ABC123', 'Test')
 
     await expect(page.locator('text=Liste beitreten')).toBeVisible()
     await expect(page.locator('text=Wocheneinkauf')).toBeVisible()
@@ -47,9 +50,7 @@ test.describe('Listen teilen & beitreten', () => {
   })
 
   test('tritt einer Liste bei', async ({ page }) => {
-    await page.goto('/join/ABC123')
-    // Dismiss the name dialog first (appears on first visit)
-    await setUserName(page, 'Gast')
+    await setupPage(page, '/join/ABC123', 'Gast')
 
     // Fill the JoinView's display name input
     await page.getByLabel('Dein Anzeigename').fill('Gast')
@@ -60,11 +61,9 @@ test.describe('Listen teilen & beitreten', () => {
   })
 
   test('Beitreten-Button deaktiviert ohne Name', async ({ page }) => {
-    await page.goto('/join/ABC123')
-    // Dismiss name dialog but don't set a name in the JoinView input
-    await setUserName(page, 'Test')
+    await setupPage(page, '/join/ABC123', 'Test')
 
-    // Clear the JoinView input (may be pre-filled from setUserName)
+    // Clear the JoinView input (may be pre-filled)
     await page.getByLabel('Dein Anzeigename').clear()
     const joinBtn = page.getByRole('button', { name: 'Beitreten' })
     await expect(joinBtn).toBeDisabled()
@@ -76,14 +75,12 @@ test.describe('Listen teilen & beitreten', () => {
       await route.fulfill({ status: 404, body: '{}' })
     })
 
-    await page.goto('/join/INVALID')
-    await setUserName(page, 'Test')
+    await setupPage(page, '/join/INVALID', 'Test')
     await expect(page.locator('text=Keine Liste mit dem Code')).toBeVisible()
   })
 
   test('navigiert nach Beitritt zur Liste', async ({ page }) => {
-    await page.goto('/join/ABC123')
-    await setUserName(page, 'Gast')
+    await setupPage(page, '/join/ABC123', 'Gast')
 
     await page.getByLabel('Dein Anzeigename').fill('Gast')
     await page.getByRole('button', { name: 'Beitreten' }).click()

@@ -1,16 +1,27 @@
 import { Page } from '@playwright/test'
 
 /**
+ * Sets up localStorage with user data and list IDs before the page loads.
+ * This must be called AFTER page.goto() since localStorage is domain-specific.
+ */
+export async function setupLocalStorage(page: Page, userName: string = 'TestUser') {
+  await page.evaluate((name) => {
+    localStorage.setItem('sirbuysalot_user', JSON.stringify({ displayName: name }))
+    localStorage.setItem('sirbuysalot_my_lists', JSON.stringify(['list-1', 'list-2']))
+  }, userName)
+}
+
+/**
  * Sets the user display name via the dialog that appears on first visit.
  */
 export async function setUserName(page: Page, name: string) {
   // The name dialog appears automatically if no name is set
   const dialog = page.locator('.v-dialog')
-  if (await dialog.isVisible({ timeout: 3000 }).catch(() => false)) {
+  if (await dialog.isVisible({ timeout: 2000 }).catch(() => false)) {
     await page.locator('.v-dialog input').fill(name)
     await page.locator('.v-dialog').getByRole('button', { name: 'Speichern' }).click()
     // Wait for dialog to close
-    await dialog.waitFor({ state: 'hidden', timeout: 3000 }).catch(() => {})
+    await dialog.waitFor({ state: 'hidden', timeout: 2000 }).catch(() => {})
   }
 }
 
