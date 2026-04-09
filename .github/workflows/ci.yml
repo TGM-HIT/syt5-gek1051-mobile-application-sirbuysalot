@@ -10,7 +10,6 @@ permissions:
   contents: read
   pages: write
   id-token: write
-  checks: write
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -99,19 +98,10 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run tests with HTML report
-        run: npx vitest run --reporter=default --reporter=junit --reporter=html --outputFile.junit=test-results/junit.xml --outputFile.html=test-results/html/index.html
+      - name: Run tests with coverage
+        run: npx vitest run --coverage --reporter=default --reporter=html --outputFile.html=test-results/html/index.html
 
-      - name: Frontend Test Report
-        uses: dorny/test-reporter@v1
-        if: always()
-        continue-on-error: true
-        with:
-          name: Frontend Tests (100)
-          path: frontend/test-results/junit.xml
-          reporter: java-junit
-
-      - name: Upload frontend HTML report
+      - name: Upload frontend test report
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -141,23 +131,14 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Run E2E tests
-        run: npx playwright test --project=chromium
+        run: npx playwright test --project=chromium --reporter=html
 
       - name: Upload E2E report
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: e2e-html-report
-          path: frontend/e2e-results/html/
-
-      - name: E2E Test Report
-        uses: dorny/test-reporter@v1
-        if: always()
-        continue-on-error: true
-        with:
-          name: E2E Tests
-          path: frontend/e2e-results/junit.xml
-          reporter: java-junit
+          path: frontend/playwright-report/
 
   # ──────────────────────────── Backend ─────────────────────────────
   backend-test:
@@ -336,15 +317,6 @@ jobs:
               f.write(page)
           PYEOF
 
-      - name: Backend Test Report
-        uses: dorny/test-reporter@v1
-        if: always()
-        continue-on-error: true
-        with:
-          name: Backend Tests (100)
-          path: backend/target/surefire-reports/TEST-*.xml
-          reporter: java-junit
-
       - name: Upload backend HTML report
         if: always()
         uses: actions/upload-artifact@v4
@@ -376,7 +348,7 @@ jobs:
 
       - name: Download E2E report
         uses: actions/download-artifact@v4
-        if: always()
+        continue-on-error: true
         with:
           name: e2e-html-report
           path: reports/e2e
