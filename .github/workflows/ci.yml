@@ -138,7 +138,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: e2e-html-report
-          path: frontend/e2e-results/html/html/
+          path: frontend/e2e-results/html/
 
   # ──────────────────────────── Backend ─────────────────────────────
   backend-test:
