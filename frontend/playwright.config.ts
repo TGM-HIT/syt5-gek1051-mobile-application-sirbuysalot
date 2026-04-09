@@ -4,11 +4,11 @@ export default defineConfig({
   testDir: './e2e',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  retries: process.env.CI ? 1 : 0,
+  workers: process.env.CI ? 2 : undefined,
   reporter: [
+    ['list'],
     ['html', { outputFolder: 'e2e-results/html', open: 'never' }],
-    ['junit', { outputFile: 'e2e-results/junit.xml' }],
   ],
   use: {
     baseURL: 'http://localhost:5173',
