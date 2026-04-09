@@ -220,6 +220,51 @@ npm run dev                    # -> http://localhost:5173
 │   └── pom.xml
 ```
 
+## Deployment
+
+Die App ist live unter: **https://sirbuysalot.netlify.app**
+
+### Architektur
+
+| Service | Anbieter | URL |
+|---------|----------|-----|
+| **Frontend** | Netlify | https://sirbuysalot.netlify.app |
+| **Backend** | Fly.io | https://backend-small-morning-5300.fly.dev |
+| **Datenbank** | Neon.tech | PostgreSQL 16 (eu-central-1) |
+
+### Frontend neu deployen
+
+```bash
+cd frontend
+npm ci
+$env:VITE_API_URL="https://backend-small-morning-5300.fly.dev/api"
+$env:VITE_WS_URL="wss://backend-small-morning-5300.fly.dev/ws"
+npm run build
+npx netlify-cli deploy --prod --dir=dist
+```
+
+### Backend neu deployen
+
+```bash
+cd backend
+fly deploy
+```
+
+### Environment Variables (Fly.io)
+
+```bash
+fly secrets set DATABASE_URL="jdbc:postgresql://..." POSTGRES_USER="..." POSTGRES_PASSWORD="..." CORS_ALLOWED_ORIGINS="https://sirbuysalot.netlify.app" SHOW_SQL="false" SERVER_ADDRESS="0.0.0.0"
+```
+
+### Hinweise
+
+- Das Backend auf Fly.io schlaeft nach Inaktivitaet ein und braucht beim ersten Aufruf ca. 10-30 Sekunden zum Starten (Cold Start)
+- Frontend und Datenbank sind immer sofort erreichbar
+- Swagger UI (Production): https://backend-small-morning-5300.fly.dev/swagger-ui.html
+
+---
+
+
 ### Feature entwickeln
 
 ```bash
