@@ -106,6 +106,47 @@ export async function mockApi(page: Page) {
     })
   })
 
+  // Mock newly created list (for navigation after create)
+  await page.route('**/api/lists/list-new', async (route) => {
+    if (route.request().method() === 'GET') {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          id: 'list-new',
+          name: 'Neue Testliste',
+          accessCode: 'NEW456',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          deletedAt: null,
+          version: 1,
+          products: [],
+          users: [],
+        }),
+      })
+    } else {
+      await route.continue()
+    }
+  })
+
+  // Mock newly created list products
+  await page.route('**/api/lists/list-new/products', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify([]),
+    })
+  })
+
+  // Mock newly created list tags
+  await page.route('**/api/lists/list-new/tags', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify([]),
+    })
+  })
+
   // Mock individual list
   await page.route('**/api/lists/list-1', async (route) => {
     if (route.request().method() === 'GET') {

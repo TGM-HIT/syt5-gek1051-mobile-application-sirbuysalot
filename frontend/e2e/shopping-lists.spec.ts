@@ -3,9 +3,12 @@ import { setupLocalStorage, mockApi } from './helpers'
 
 test.describe('Einkaufslisten (Home)', () => {
   test.beforeEach(async ({ page }) => {
+    // Setup mocks first (persists across navigations)
     await mockApi(page)
+    // Navigate to set localStorage on correct domain
     await page.goto('/')
     await setupLocalStorage(page, 'TestUser')
+    // Reload to pick up localStorage values (mocks persist)
     await page.reload()
     await page.waitForLoadState('networkidle')
   })
