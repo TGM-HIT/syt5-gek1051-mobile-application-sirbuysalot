@@ -147,6 +147,24 @@ export async function mockApi(page: Page) {
     })
   })
 
+  // Mock newly created list users (for join after create)
+  await page.route('**/api/lists/list-new/users', async (route) => {
+    if (route.request().method() === 'POST') {
+      const body = JSON.parse(route.request().postData() || '{}')
+      await route.fulfill({
+        status: 201,
+        contentType: 'application/json',
+        body: JSON.stringify({ id: 'u-creator', displayName: body.displayName || 'TestUser' }),
+      })
+    } else {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify([]),
+      })
+    }
+  })
+
   // Mock individual list
   await page.route('**/api/lists/list-1', async (route) => {
     if (route.request().method() === 'GET') {
