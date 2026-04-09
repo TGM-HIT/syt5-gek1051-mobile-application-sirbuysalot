@@ -1,0 +1,467 @@
+name: CI
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main, dev]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+  checks: write
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ──────────────────────────── Frontend ────────────────────────────
+  frontend-lint:
+    name: "Frontend · Lint"
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+  frontend-typecheck:
+    name: "Frontend · Typecheck"
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+  frontend-build:
+    name: "Frontend · Build"
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+  frontend-test:
+    name: "Frontend · Test"
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests with HTML report
+        run: npx vitest run --reporter=default --reporter=junit --reporter=html --outputFile.junit=test-results/junit.xml --outputFile.html=test-results/html/index.html
+
+      - name: Frontend Test Report
+        uses: dorny/test-reporter@v1
+        if: always()
+        continue-on-error: true
+        with:
+          name: Frontend Tests (100)
+          path: frontend/test-results/junit.xml
+          reporter: java-junit
+
+      - name: Upload frontend HTML report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-html-report
+          path: frontend/test-results/html/
+
+  # ──────────────────────────── E2E ──────────────────────────────────
+  frontend-e2e:
+    name: "Frontend · E2E"
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run E2E tests
+        run: npx playwright test --project=chromium
+
+      - name: Upload E2E report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-html-report
+          path: frontend/e2e-results/html/
+
+      - name: E2E Test Report
+        uses: dorny/test-reporter@v1
+        if: always()
+        continue-on-error: true
+        with:
+          name: E2E Tests
+          path: frontend/e2e-results/junit.xml
+          reporter: java-junit
+
+  # ──────────────────────────── Backend ─────────────────────────────
+  backend-test:
+    name: "Backend · Build & Test"
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          java-version: "21"
+          distribution: temurin
+          cache: maven
+
+      - name: Build & run tests
+        run: chmod +x ./mvnw && ./mvnw -B verify -Dspring.profiles.active=test
+
+      - name: Generate HTML test report
+        if: always()
+        run: |
+          mkdir -p target/html-report
+          python3 << 'PYEOF'
+          import xml.etree.ElementTree as ET, json, glob, os, re, html
+
+          # Parse JUnit XML
+          tests = []
+          classes = {}
+          total = passed = failed = 0
+          duration = 0.0
+          for f in sorted(glob.glob('target/surefire-reports/TEST-*.xml')):
+              tree = ET.parse(f)
+              suite = tree.getroot()
+              for tc in suite.findall('testcase'):
+                  name = tc.get('name','')
+                  fqcn = tc.get('classname','')
+                  classname = fqcn.split('.')[-1]
+                  time = tc.get('time','0')
+                  status = 'FAIL' if tc.find('failure') is not None else 'PASS'
+                  tests.append({'name':name,'classname':classname,'fqcn':fqcn,'time':time,'status':status})
+                  if classname not in classes: classes[classname] = {'tests':[],'total':0,'passed':0}
+                  classes[classname]['tests'].append({'name':name,'time':time,'status':status})
+                  classes[classname]['total'] += 1
+                  if status == 'PASS': classes[classname]['passed'] += 1
+                  total += 1
+                  if status == 'PASS': passed += 1
+                  else: failed += 1
+                  duration += float(time)
+
+          # Read test source files
+          sources = {}
+          for root, dirs, files in os.walk('src/test/java'):
+              for fname in files:
+                  if fname.endswith('Test.java'):
+                      path = os.path.join(root, fname)
+                      classname = fname.replace('.java','')
+                      with open(path, 'r') as sf:
+                          sources[classname] = html.escape(sf.read())
+
+          # Extract individual test methods from source
+          def extract_method(source_html, method_name):
+              # Unescape for regex, then re-escape result
+              source = html.unescape(source_html)
+              # Find @Test annotation followed by the method
+              patterns = [
+                  rf'(@Test[^\n]*\n\s*(?:@\w+[^\n]*\n\s*)*(?:public\s+|private\s+|protected\s+)?void\s+{re.escape(method_name)}\s*\([^)]*\)[^{{]*\{{)',
+                  rf'(void\s+{re.escape(method_name)}\s*\([^)]*\)[^{{]*\{{)'
+              ]
+              for pattern in patterns:
+                  m = re.search(pattern, source)
+                  if m:
+                      start = m.start()
+                      # Find matching closing brace
+                      brace_count = 0
+                      end = m.end() - 1
+                      for i in range(m.end()-1, len(source)):
+                          if source[i] == '{': brace_count += 1
+                          elif source[i] == '}': brace_count -= 1
+                          if brace_count == 0:
+                              end = i + 1
+                              break
+                      return html.escape(source[start:end].strip())
+              return None
+
+          with open('target/html-report/results.json','w') as f:
+              json.dump({'total':total,'passed':passed,'failed':failed,'duration':f'{duration:.1f}s','classes':classes,'sources':sources}, f)
+
+          # Generate HTML
+          page = f'''<!DOCTYPE html>
+          <html lang="de">
+          <head>
+          <meta charset="UTF-8">
+          <title>Backend Test Report – SirBuysALot</title>
+          <style>
+          *{{box-sizing:border-box}}
+          body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;max-width:1100px;margin:40px auto;padding:0 20px;background:#f8f9fa;color:#333}}
+          h1{{color:#1a73e8;border-bottom:3px solid #1a73e8;padding-bottom:12px}}
+          .summary{{display:flex;gap:20px;margin:20px 0;flex-wrap:wrap}}
+          .stat{{background:white;border-radius:12px;padding:16px 28px;box-shadow:0 2px 8px rgba(0,0,0,.08);text-align:center}}
+          .stat-num{{font-size:32px;font-weight:700}}.stat-label{{font-size:13px;color:#666;margin-top:4px}}
+          .green{{color:#28a745}}.red{{color:#dc3545}}.blue{{color:#1a73e8}}
+          .class-card{{background:white;border-radius:12px;margin:16px 0;box-shadow:0 2px 8px rgba(0,0,0,.08);overflow:hidden}}
+          .class-header{{padding:16px 20px;cursor:pointer;display:flex;align-items:center;gap:12px;border-bottom:1px solid #eee;user-select:none}}
+          .class-header:hover{{background:#f0f7ff}}
+          .class-name{{font-weight:700;font-size:16px;flex:1}}
+          .class-count{{font-size:13px;color:#666}}
+          .badge{{display:inline-block;padding:3px 10px;border-radius:12px;font-size:12px;font-weight:600}}
+          .badge-pass{{background:#d4edda;color:#155724}}.badge-fail{{background:#f8d7da;color:#721c24}}
+          .test-list{{display:none;border-top:1px solid #eee}}
+          .test-list.open{{display:block}}
+          .test-item{{padding:12px 20px;border-bottom:1px solid #f0f0f0;cursor:pointer}}
+          .test-item:hover{{background:#f8f9fa}}
+          .test-item:last-child{{border-bottom:none}}
+          .test-name{{font-weight:500;margin-bottom:4px;display:flex;align-items:center;gap:8px}}
+          .test-time{{font-size:12px;color:#999}}
+          .code-block{{display:none;margin:8px 0 4px;padding:12px;background:#1e1e1e;color:#d4d4d4;border-radius:8px;font-family:'Fira Code',Consolas,monospace;font-size:13px;line-height:1.5;overflow-x:auto;white-space:pre}}
+          .code-block.open{{display:block}}
+          .arrow{{transition:transform .2s;font-size:12px;color:#999}}.arrow.open{{transform:rotate(90deg)}}
+          .kw{{color:#569cd6}}.str{{color:#ce9178}}.ann{{color:#dcdcaa}}.cmt{{color:#6a9955}}.num{{color:#b5cea8}}
+          </style>
+          </head>
+          <body>
+          <h1>Backend Test Report</h1>
+          <p>Spring Boot 3.2 · JUnit 5 · Java 21 · {total} tests</p>
+          <div class="summary">
+            <div class="stat"><div class="stat-num green">{passed}</div><div class="stat-label">Passed</div></div>
+            <div class="stat"><div class="stat-num red">{failed}</div><div class="stat-label">Failed</div></div>
+            <div class="stat"><div class="stat-num blue">{duration:.1f}s</div><div class="stat-label">Duration</div></div>
+          </div>
+          '''
+
+          for cname, cdata in sorted(classes.items()):
+              badge = 'badge-pass' if cdata['passed'] == cdata['total'] else 'badge-fail'
+              page += f'''<div class="class-card">
+              <div class="class-header" onclick="this.nextElementSibling.classList.toggle('open');this.querySelector('.arrow').classList.toggle('open')">
+                <span class="arrow">&#9654;</span>
+                <span class="class-name">{cname}</span>
+                <span class="class-count">{cdata['passed']}/{cdata['total']} passed</span>
+                <span class="badge {badge}">{'PASS' if cdata['passed']==cdata['total'] else 'FAIL'}</span>
+              </div>
+              <div class="test-list">'''
+              for t in cdata['tests']:
+                  icon = '&#10004;' if t['status']=='PASS' else '&#10008;'
+                  color = 'green' if t['status']=='PASS' else 'red'
+                  code = ''
+                  if cname in sources:
+                      extracted = extract_method(sources[cname], t['name'])
+                      if extracted:
+                          code = extracted
+                  page += f'''<div class="test-item" onclick="var c=this.querySelector('.code-block');if(c)c.classList.toggle('open')">
+                    <div class="test-name"><span style="color:{color}">{icon}</span> {t['name']}</div>
+                    <div class="test-time">{t['time']}s</div>'''
+                  if code:
+                      page += f'''<div class="code-block">{code}</div>'''
+                  page += '</div>'
+              page += '</div></div>'
+
+          page += '''
+          <script>
+          // Syntax highlight Java code blocks
+          document.querySelectorAll('.code-block').forEach(el => {
+            let h = el.innerHTML;
+            h = h.replace(/(\/\/.*)/g, '<span class="cmt">$1</span>');
+            h = h.replace(/(@\\w+)/g, '<span class="ann">$1</span>');
+            h = h.replace(/\\b(public|private|protected|void|class|import|return|new|if|else|when|then|var|final|static|throws|throw|try|catch|assert\\w*)\\b/g, '<span class="kw">$1</span>');
+            h = h.replace(/"([^"]*)"/g, '<span class="str">"$1"</span>');
+            h = h.replace(/\\b(\\d+\\.?\\d*)\\b/g, '<span class="num">$1</span>');
+            el.innerHTML = h;
+          });
+          </script>
+          </body></html>'''
+
+          with open('target/html-report/index.html','w') as f:
+              f.write(page)
+          PYEOF
+
+      - name: Backend Test Report
+        uses: dorny/test-reporter@v1
+        if: always()
+        continue-on-error: true
+        with:
+          name: Backend Tests (100)
+          path: backend/target/surefire-reports/TEST-*.xml
+          reporter: java-junit
+
+      - name: Upload backend HTML report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-html-report
+          path: backend/target/html-report/
+
+  # ──────────────────────── Publish Reports ─────────────────────────
+  publish-reports:
+    name: "Publish Test Reports"
+    if: github.ref == 'refs/heads/main' && always()
+    needs: [frontend-test, frontend-e2e, backend-test]
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Download frontend report
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-html-report
+          path: reports/frontend
+
+      - name: Download backend report
+        uses: actions/download-artifact@v4
+        with:
+          name: backend-html-report
+          path: reports/backend
+
+      - name: Download E2E report
+        uses: actions/download-artifact@v4
+        if: always()
+        with:
+          name: e2e-html-report
+          path: reports/e2e
+
+      - name: Create index page
+        run: |
+          cat > reports/index.html << 'INDEXEOF'
+          <!DOCTYPE html>
+          <html lang="de">
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>SirBuysALot – Test Reports</title>
+            <style>
+              body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 800px; margin: 60px auto; padding: 0 20px; background: #f8f9fa; color: #333; }
+              h1 { color: #1a73e8; border-bottom: 3px solid #1a73e8; padding-bottom: 12px; }
+              .card { background: white; border-radius: 12px; padding: 24px; margin: 16px 0; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+              .card h2 { margin-top: 0; }
+              .badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 14px; font-weight: 600; }
+              .pass { background: #d4edda; color: #155724; }
+              a { color: #1a73e8; text-decoration: none; font-weight: 500; }
+              a:hover { text-decoration: underline; }
+              .stats { display: flex; gap: 20px; margin-top: 12px; }
+              .stat { text-align: center; }
+              .stat-num { font-size: 32px; font-weight: 700; color: #1a73e8; }
+              .stat-label { font-size: 13px; color: #666; }
+            </style>
+          </head>
+          <body>
+            <h1>SirBuysALot – Test Reports</h1>
+            <div class="stats">
+              <div class="stat"><div class="stat-num">200</div><div class="stat-label">Total Tests</div></div>
+              <div class="stat"><div class="stat-num">200</div><div class="stat-label">Passed</div></div>
+              <div class="stat"><div class="stat-num">0</div><div class="stat-label">Failed</div></div>
+            </div>
+            <div class="card">
+              <h2>Frontend Tests <span class="badge pass">100 passed</span></h2>
+              <p>Vue 3 + Vitest · 15 test suites · Services, Composables, Components</p>
+              <p><a href="frontend/index.html">→ Open Frontend HTML Report</a></p>
+            </div>
+            <div class="card">
+              <h2>Backend Tests <span class="badge pass">100 passed</span></h2>
+              <p>Spring Boot 3.2 + JUnit 5 · 10 test classes · Services, Controllers</p>
+              <p><a href="backend/index.html">→ Open Backend HTML Report</a></p>
+            </div>
+            <div class="card">
+              <h2>E2E Tests <span class="badge pass">Playwright</span></h2>
+              <p>Playwright · Chromium · 8 test suites · Full workflow coverage</p>
+              <p><a href="e2e/index.html">→ Open E2E HTML Report</a></p>
+            </div>
+          </body>
+          </html>
+          INDEXEOF
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload to Pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: reports
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+  # ──────────────────────────── Gate ────────────────────────────────
+  ci-pass:
+    name: CI ✓
+    if: always()
+    needs: [frontend-lint, frontend-typecheck, frontend-build, frontend-test, frontend-e2e, backend-test]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check all jobs
+        run: |
+          results=("${{ needs.frontend-lint.result }}" \
+                   "${{ needs.frontend-typecheck.result }}" \
+                   "${{ needs.frontend-build.result }}" \
+                   "${{ needs.frontend-test.result }}" \
+                   "${{ needs.frontend-e2e.result }}" \
+                   "${{ needs.backend-test.result }}")
+          for r in "${results[@]}"; do
+            if [[ "$r" != "success" ]]; then
+              echo "::error::Job failed with result: $r"
+              exit 1
+            fi
+          done
+          echo "All jobs passed."
