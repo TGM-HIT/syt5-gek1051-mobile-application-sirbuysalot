@@ -700,11 +700,11 @@ async function onDeleteProduct() {
 }
 
 async function onDragEnd() {
-  const order = products.value.map((p, idx) => ({ id: p.id, position: idx }))
+  const order = sortedProducts.value.map((p, idx) => ({ id: p.id, position: idx }))
   try {
     await productService.reorder(listId, order)
   } catch {
-    // Position persist failed, local order still applies
+    fetchProducts()
   }
 }
 
