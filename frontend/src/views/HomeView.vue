@@ -271,7 +271,9 @@ let pollInterval: ReturnType<typeof setInterval> | null = null
 
 onMounted(() => {
   fetchLists()
-  pollInterval = setInterval(() => fetchLists(), 5000)
+  pollInterval = setInterval(() => {
+    if (navigator.onLine) fetchLists()
+  }, 5000)
 })
 
 onUnmounted(() => {

@@ -101,6 +101,9 @@
           </div>
         </v-card>
 
+        <!-- Sync status -->
+        <SyncStatusIndicator :list-id="listId" class="mb-3" />
+
         <!-- Search bar -->
         <v-text-field
           v-model="searchQuery"
@@ -451,10 +454,12 @@ import { useRoute, useRouter } from 'vue-router'
 import { useDisplay } from 'vuetify'
 import { useProducts } from '@/composables/useProducts'
 import { useUser } from '@/composables/useUser'
+import { useOnlineStatus } from '@/composables/useOnlineStatus'
 import { listService } from '@/services/listService'
 import { productService } from '@/services/productService'
 import ProductEditDialog from '@/components/ProductEditDialog.vue'
 import TagManagementDialog from '@/components/TagManagementDialog.vue'
+import SyncStatusIndicator from '@/components/SyncStatusIndicator.vue'
 import { useTags } from '@/composables/useTags'
 import draggable from 'vuedraggable'
 import type { Product } from '@/types'
@@ -466,7 +471,8 @@ const listId = route.params.id as string
 const { displayName } = useUser()
 const showSnackbar = inject<(text: string, color?: string, icon?: string) => void>('showSnackbar')!
 
-const { products, deletedProducts, loading, error, listGone, fetchProducts, fetchDeletedProducts, addProduct, updateProduct, togglePurchase, removeProduct, restoreProduct } = useProducts(listId)
+const { isOnline } = useOnlineStatus()
+const { products, deletedProducts, loading, error, listGone, fetchProducts, fetchDeletedProducts, addProduct, updateProduct, togglePurchase, removeProduct, restoreProduct, syncPending } = useProducts(listId)
 
 watch(listGone, (gone) => {
   if (gone) {
@@ -562,28 +568,40 @@ const shareUrl = computed(() => {
 
 let pollInterval: ReturnType<typeof setInterval> | null = null
 
+// Sync pending changes when coming back online
+watch(isOnline, async (online) => {
+  if (online) {
+    await syncPending()
+    fetchProducts()
+    fetchTags()
+  }
+})
+
 onMounted(async () => {
   try {
     const list = await listService.getById(listId)
     listName.value = list.name
     accessCode.value = list.accessCode ?? ''
   } catch {
-    listName.value = 'Unbekannte Liste'
+    // Load cached list name when offline
+    listName.value = 'Einkaufsliste'
   }
   fetchProducts()
   fetchTags()
 
-  // Auto-refresh every 5 seconds for real-time sync
+  // Auto-refresh every 5 seconds for real-time sync (only when online)
   pollInterval = setInterval(async () => {
+    if (!navigator.onLine) return
     try {
       await listService.getById(listId)
       fetchProducts()
       fetchTags()
-    } catch {
-      // List was deleted — redirect home
-      showSnackbar('Diese Liste wurde gelöscht', 'error', 'mdi-delete-alert')
-      if (pollInterval) clearInterval(pollInterval)
-      router.push('/')
+    } catch (e: any) {
+      if (e.response?.status === 404) {
+        showSnackbar('Diese Liste wurde gelöscht', 'error', 'mdi-delete-alert')
+        if (pollInterval) clearInterval(pollInterval)
+        router.push('/')
+      }
     }
   }, 5000)
 })

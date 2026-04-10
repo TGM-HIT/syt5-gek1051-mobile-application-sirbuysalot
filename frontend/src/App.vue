@@ -111,11 +111,25 @@ import { ref, computed, onMounted, provide, reactive, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useUser } from '@/composables/useUser'
 import { useDarkMode } from '@/composables/useDarkMode'
+import { useOnlineStatus } from '@/composables/useOnlineStatus'
+import { syncService } from '@/services/syncService'
 import OfflineBanner from '@/components/OfflineBanner.vue'
 
 const route = useRoute()
 const { displayName, isLoggedIn, setDisplayName } = useUser()
 const { isDark, toggle: toggleDarkMode } = useDarkMode()
+const { isOnline } = useOnlineStatus()
+
+// Sync all pending offline changes when coming back online
+watch(isOnline, async (online) => {
+  if (online) {
+    try {
+      await syncService.syncAllPending()
+    } catch {
+      // Silent fail, individual list views will handle their own sync
+    }
+  }
+})
 
 const showNameDialog = ref(false)
 const nameInput = ref('')
