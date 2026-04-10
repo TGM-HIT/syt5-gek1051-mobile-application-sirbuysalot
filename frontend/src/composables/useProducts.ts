@@ -238,13 +238,13 @@ export function useProducts(listId: string) {
         await fetchProducts()
         return
       }
-      // Queue for batch sync
+      // Queue for batch sync — send desired state, not a relative toggle
       await syncService.addPendingChange({
         type: 'toggle',
         entity: 'product',
         entityId: productId,
         listId,
-        payload: { purchasedBy },
+        payload: { purchased: newPurchased, purchasedBy: newPurchased ? purchasedBy : null },
         timestamp: new Date().toISOString(),
       })
     }

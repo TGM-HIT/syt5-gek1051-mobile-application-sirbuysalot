@@ -92,9 +92,17 @@ public class SyncService {
                 String entityId = (String) change.get("entityId");
                 Product product = productRepository.findById(UUID.fromString(entityId))
                         .orElseThrow(() -> new RuntimeException("Product not found"));
-                product.setPurchased(!product.getPurchased());
-                product.setPurchasedBy(product.getPurchased() ? (String) payload.get("purchasedBy") : null);
-                product.setPurchasedAt(product.getPurchased() ? LocalDateTime.now() : null);
+                // Use desired state from payload if provided, otherwise fall back to toggle
+                if (payload.containsKey("purchased")) {
+                    boolean desired = (Boolean) payload.get("purchased");
+                    product.setPurchased(desired);
+                    product.setPurchasedBy(desired ? (String) payload.get("purchasedBy") : null);
+                    product.setPurchasedAt(desired ? LocalDateTime.now() : null);
+                } else {
+                    product.setPurchased(!product.getPurchased());
+                    product.setPurchasedBy(product.getPurchased() ? (String) payload.get("purchasedBy") : null);
+                    product.setPurchasedAt(product.getPurchased() ? LocalDateTime.now() : null);
+                }
                 product.setVersion(product.getVersion() + 1);
                 productRepository.save(product);
             }
