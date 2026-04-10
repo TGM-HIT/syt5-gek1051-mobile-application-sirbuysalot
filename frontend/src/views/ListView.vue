@@ -450,7 +450,7 @@
 
 <script setup lang="ts">
 import { ref, computed, inject, onMounted, onUnmounted, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
 import { useDisplay } from 'vuetify'
 import { useProducts } from '@/composables/useProducts'
 import { useUser } from '@/composables/useUser'
@@ -465,21 +465,13 @@ import draggable from 'vuedraggable'
 import type { Product } from '@/types'
 
 const route = useRoute()
-const router = useRouter()
 const { smAndDown } = useDisplay()
 const listId = route.params.id as string
 const { displayName } = useUser()
 const showSnackbar = inject<(text: string, color?: string, icon?: string) => void>('showSnackbar')!
 
 const { isOnline } = useOnlineStatus()
-const { products, deletedProducts, loading, error, listGone, fetchProducts, fetchDeletedProducts, addProduct, updateProduct, togglePurchase, removeProduct, restoreProduct, syncPending } = useProducts(listId)
-
-watch(listGone, (gone) => {
-  if (gone) {
-    showSnackbar('Diese Liste wurde gelöscht', 'error', 'mdi-delete-alert')
-    router.push('/')
-  }
-})
+const { products, deletedProducts, loading, error, fetchProducts, fetchDeletedProducts, addProduct, updateProduct, togglePurchase, removeProduct, restoreProduct, syncPending } = useProducts(listId)
 const { tags: allTags, fetchTags, createTag, removeTag: deleteTag, setProductTags } = useTags(listId)
 
 const listName = ref('...')
@@ -578,31 +570,34 @@ watch(isOnline, async (online) => {
 })
 
 onMounted(async () => {
+  // Load list metadata
   try {
     const list = await listService.getById(listId)
     listName.value = list.name
     accessCode.value = list.accessCode ?? ''
   } catch {
-    // Load cached list name when offline
-    listName.value = 'Einkaufsliste'
+    // Offline: try to load name from IndexedDB cache
+    try {
+      const { db } = await import('@/db')
+      const cached = await db.shoppingLists.get(listId)
+      if (cached) {
+        listName.value = cached.name
+        accessCode.value = cached.accessCode ?? ''
+      } else {
+        listName.value = 'Einkaufsliste'
+      }
+    } catch {
+      listName.value = 'Einkaufsliste'
+    }
   }
   fetchProducts()
   fetchTags()
 
   // Auto-refresh every 5 seconds for real-time sync (only when online)
-  pollInterval = setInterval(async () => {
+  pollInterval = setInterval(() => {
     if (!navigator.onLine) return
-    try {
-      await listService.getById(listId)
-      fetchProducts()
-      fetchTags()
-    } catch (e: any) {
-      if (e.response?.status === 404) {
-        showSnackbar('Diese Liste wurde gelöscht', 'error', 'mdi-delete-alert')
-        if (pollInterval) clearInterval(pollInterval)
-        router.push('/')
-      }
-    }
+    fetchProducts()
+    fetchTags()
   }, 5000)
 })
 

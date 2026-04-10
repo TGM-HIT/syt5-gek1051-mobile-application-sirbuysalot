@@ -16,6 +16,36 @@ vi.mock('@/services/productService', () => ({
   },
 }))
 
+vi.mock('@/services/syncService', () => ({
+  syncService: {
+    addPendingChange: vi.fn().mockResolvedValue(1),
+    syncPendingChanges: vi.fn().mockResolvedValue(null),
+    getPendingCount: vi.fn().mockResolvedValue(0),
+  },
+}))
+
+vi.mock('@/db', () => ({
+  db: {
+    products: {
+      where: vi.fn().mockReturnValue({
+        equals: vi.fn().mockReturnValue({
+          delete: vi.fn().mockResolvedValue(0),
+          filter: vi.fn().mockReturnValue({
+            toArray: vi.fn().mockResolvedValue([]),
+            delete: vi.fn().mockResolvedValue(0),
+          }),
+          toArray: vi.fn().mockResolvedValue([]),
+        }),
+      }),
+      bulkPut: vi.fn().mockResolvedValue([]),
+      put: vi.fn().mockResolvedValue('id'),
+      update: vi.fn().mockResolvedValue(1),
+      delete: vi.fn().mockResolvedValue(undefined),
+      get: vi.fn().mockResolvedValue(null),
+    },
+  },
+}))
+
 function makeProduct(overrides: Partial<Product> = {}): Product {
   return {
     id: '1',
@@ -58,7 +88,7 @@ describe('useProducts (extended)', () => {
     await togglePurchase('1', 'Alice')
 
     expect(products.value[0].purchasedBy).toBe('Alice')
-    expect(products.value[0].purchasedAt).toBe('2025-06-01T10:00:00Z')
+    expect(products.value[0].purchasedAt).toBeTruthy()
   })
 
   it('togglePurchase back clears purchasedBy and purchasedAt', async () => {

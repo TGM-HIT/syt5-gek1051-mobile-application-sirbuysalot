@@ -13,6 +13,36 @@ vi.mock('@/services/productService', () => ({
   },
 }))
 
+vi.mock('@/services/syncService', () => ({
+  syncService: {
+    addPendingChange: vi.fn().mockResolvedValue(1),
+    syncPendingChanges: vi.fn().mockResolvedValue(null),
+    getPendingCount: vi.fn().mockResolvedValue(0),
+  },
+}))
+
+vi.mock('@/db', () => ({
+  db: {
+    products: {
+      where: vi.fn().mockReturnValue({
+        equals: vi.fn().mockReturnValue({
+          delete: vi.fn().mockResolvedValue(0),
+          filter: vi.fn().mockReturnValue({
+            toArray: vi.fn().mockResolvedValue([]),
+            delete: vi.fn().mockResolvedValue(0),
+          }),
+          toArray: vi.fn().mockResolvedValue([]),
+        }),
+      }),
+      bulkPut: vi.fn().mockResolvedValue([]),
+      put: vi.fn().mockResolvedValue('id'),
+      update: vi.fn().mockResolvedValue(1),
+      delete: vi.fn().mockResolvedValue(undefined),
+      get: vi.fn().mockResolvedValue(null),
+    },
+  },
+}))
+
 function makeProduct(overrides: Partial<Product> = {}): Product {
   return {
     id: '1',
@@ -48,13 +78,14 @@ describe('useProducts', () => {
     expect(products.value).toEqual(mockProducts)
   })
 
-  it('fetchProducts sets error on failure', async () => {
+  it('fetchProducts loads from cache on failure', async () => {
     vi.mocked(productService.getAll).mockRejectedValue(new Error('Failed'))
 
-    const { error, fetchProducts } = useProducts(listId)
+    const { products, fetchProducts } = useProducts(listId)
     await fetchProducts()
 
-    expect(error.value).toBe('Failed')
+    // Falls back to cache (empty in test), no error shown
+    expect(products.value).toEqual([])
   })
 
   it('fetchProducts sets loading state', async () => {
@@ -72,20 +103,17 @@ describe('useProducts', () => {
   it('addProduct appends to products', async () => {
     const created = makeProduct({ id: '2', name: 'Bread' })
     vi.mocked(productService.create).mockResolvedValue(created)
-    vi.mocked(productService.getAll).mockResolvedValue([created])
 
     const { products, addProduct } = useProducts(listId)
     await addProduct({ name: 'Bread' })
 
     expect(productService.create).toHaveBeenCalledWith(listId, { name: 'Bread' })
-    expect(products.value).toContainEqual(created)
+    expect(products.value.some((p) => p.name === 'Bread')).toBe(true)
   })
 
   it('updateProduct replaces product in array', async () => {
     const original = makeProduct()
-    const updated = makeProduct({ name: 'Oat Milk', version: 2 })
-    vi.mocked(productService.update).mockResolvedValue(updated)
-    vi.mocked(productService.getAll).mockResolvedValue([updated])
+    vi.mocked(productService.update).mockResolvedValue(makeProduct({ name: 'Oat Milk', version: 2 }))
 
     const { products, updateProduct } = useProducts(listId)
     products.value = [original]
@@ -96,9 +124,7 @@ describe('useProducts', () => {
 
   it('togglePurchase updates purchase state', async () => {
     const original = makeProduct()
-    const toggled = makeProduct({ purchased: true, purchasedBy: 'Alice' })
-    vi.mocked(productService.togglePurchase).mockResolvedValue(toggled)
-    vi.mocked(productService.getAll).mockResolvedValue([toggled])
+    vi.mocked(productService.togglePurchase).mockResolvedValue(makeProduct({ purchased: true, purchasedBy: 'Alice' }))
 
     const { products, togglePurchase } = useProducts(listId)
     products.value = [original]
@@ -111,7 +137,6 @@ describe('useProducts', () => {
   it('removeProduct filters out the product', async () => {
     const product = makeProduct()
     vi.mocked(productService.remove).mockResolvedValue()
-    vi.mocked(productService.getAll).mockResolvedValue([])
 
     const { products, removeProduct } = useProducts(listId)
     products.value = [product]

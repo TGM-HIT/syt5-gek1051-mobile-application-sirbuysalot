@@ -29,21 +29,9 @@ export function useProducts(listId: string) {
   }
 
   async function cacheProducts(items: Product[]) {
-    // Keep unsynced local products, replace everything else
-    const unsynced = await db.products
-      .where('listId').equals(listId)
-      .filter((p) => !p.synced)
-      .toArray()
-    const unsyncedIds = new Set(unsynced.map((p) => p.id))
-
-    await db.products
-      .where('listId').equals(listId)
-      .filter((p) => p.synced)
-      .delete()
-
-    const dbProducts = items
-      .filter((p) => !unsyncedIds.has(p.id))
-      .map((p) => ({
+    try {
+      await db.products.where('listId').equals(listId).delete()
+      const dbProducts = items.map((p) => ({
         id: p.id,
         listId,
         name: p.name,
@@ -58,15 +46,21 @@ export function useProducts(listId: string) {
         version: p.version,
         synced: true,
       }))
-
-    if (dbProducts.length > 0) {
-      await db.products.bulkPut(dbProducts)
+      if (dbProducts.length > 0) {
+        await db.products.bulkPut(dbProducts)
+      }
+    } catch {
+      // IndexedDB error - non-critical
     }
   }
 
   async function loadFromCache(): Promise<Product[]> {
-    const cached = await db.products.where('listId').equals(listId).toArray()
-    return cached.filter((p) => !p.deletedAt).map(toProduct)
+    try {
+      const cached = await db.products.where('listId').equals(listId).toArray()
+      return cached.filter((p) => !p.deletedAt).map(toProduct)
+    } catch {
+      return []
+    }
   }
 
   async function fetchProducts() {
@@ -79,17 +73,15 @@ export function useProducts(listId: string) {
       products.value = fetched
       await cacheProducts(fetched)
     } catch (e: any) {
+      // Only set listGone on confirmed 404 from server
       if (e.response?.status === 404) {
         listGone.value = true
         return
       }
-      if (!navigator.onLine) {
-        const cached = await loadFromCache()
-        if (cached.length > 0 || products.value.length === 0) {
-          products.value = cached
-        }
-      } else {
-        error.value = e.message ?? 'Fehler beim Laden der Produkte'
+      // Any other error (network, timeout, etc): load from cache
+      const cached = await loadFromCache()
+      if (cached.length > 0 || products.value.length === 0) {
+        products.value = cached
       }
     } finally {
       loading.value = false
@@ -100,22 +92,11 @@ export function useProducts(listId: string) {
     try {
       deletedProducts.value = await productService.getDeleted(listId)
     } catch {
-      // silent when offline
+      // silent - not critical
     }
   }
 
   async function addProduct(payload: CreateProductPayload) {
-    if (navigator.onLine) {
-      try {
-        const created = await productService.create(listId, payload)
-        await fetchProducts()
-        return created
-      } catch {
-        if (navigator.onLine) throw new Error('Fehler beim Hinzufügen')
-      }
-    }
-
-    // Offline: create locally with temp ID
     const tempId = crypto.randomUUID()
     const now = new Date().toISOString()
     const localProduct: Product = {
@@ -133,8 +114,10 @@ export function useProducts(listId: string) {
       tags: [],
     }
 
+    // 1. Always update UI immediately
     products.value.push(localProduct)
 
+    // 2. Always save to IndexedDB
     await db.products.put({
       id: tempId,
       listId,
@@ -148,141 +131,150 @@ export function useProducts(listId: string) {
       synced: false,
     })
 
-    await syncService.addPendingChange({
-      type: 'create',
-      entity: 'product',
-      entityId: tempId,
-      listId,
-      payload: { name: payload.name, price: payload.price ?? null },
-      timestamp: now,
-    })
-
-    return localProduct
+    // 3. Try to sync to server
+    try {
+      const created = await productService.create(listId, payload)
+      // Replace temp product with server version
+      const idx = products.value.findIndex((p) => p.id === tempId)
+      if (idx !== -1) products.value[idx] = created
+      await db.products.delete(tempId)
+      await db.products.put({
+        id: created.id,
+        listId,
+        name: created.name,
+        price: created.price ?? undefined,
+        purchased: created.purchased,
+        position: created.position ?? 0,
+        createdAt: created.createdAt,
+        updatedAt: created.updatedAt,
+        version: created.version,
+        synced: true,
+      })
+      return created
+    } catch {
+      // Server unreachable: queue for batch sync
+      await syncService.addPendingChange({
+        type: 'create',
+        entity: 'product',
+        entityId: tempId,
+        listId,
+        payload: { name: payload.name, price: payload.price ?? null },
+        timestamp: now,
+      })
+      return localProduct
+    }
   }
 
   async function updateProduct(productId: string, payload: UpdateProductPayload) {
     const idx = products.value.findIndex((p) => p.id === productId)
-    const original = idx !== -1 ? { ...products.value[idx] } : null
 
-    // Optimistic update
+    // 1. Always update UI immediately
     if (idx !== -1) {
       products.value[idx] = { ...products.value[idx], ...payload }
     }
 
-    if (navigator.onLine) {
-      try {
-        const updated = await productService.update(listId, productId, payload)
-        await fetchProducts()
-        return updated
-      } catch (e: any) {
-        if (navigator.onLine) {
-          if (original && idx !== -1) products.value[idx] = original
-          throw e
-        }
-      }
-    }
-
-    // Offline: queue for sync
+    // 2. Always save to IndexedDB
     await db.products.update(productId, {
       ...payload,
       synced: false,
       updatedAt: new Date().toISOString(),
     })
 
-    await syncService.addPendingChange({
-      type: 'update',
-      entity: 'product',
-      entityId: productId,
-      listId,
-      payload,
-      timestamp: new Date().toISOString(),
-    })
+    // 3. Try to sync to server
+    try {
+      await productService.update(listId, productId, payload)
+      await db.products.update(productId, { synced: true })
+    } catch (e: any) {
+      if (e.response?.status === 409) {
+        // Conflict: server wins - refetch
+        await fetchProducts()
+        return products.value.find((p) => p.id === productId) ?? null
+      }
+      // Queue for batch sync
+      await syncService.addPendingChange({
+        type: 'update',
+        entity: 'product',
+        entityId: productId,
+        listId,
+        payload,
+        timestamp: new Date().toISOString(),
+      })
+    }
 
-    return products.value[idx]
+    return products.value[idx] ?? null
   }
 
   async function togglePurchase(productId: string, purchasedBy: string) {
     error.value = null
     const idx = products.value.findIndex((p) => p.id === productId)
-    const original = idx !== -1 ? { ...products.value[idx] } : null
+    if (idx === -1) return
 
-    // Optimistic toggle
-    if (idx !== -1) {
-      const p = products.value[idx]
-      const newPurchased = !p.purchased
-      products.value[idx] = {
-        ...p,
-        purchased: newPurchased,
-        purchasedBy: newPurchased ? purchasedBy : null,
-        purchasedAt: newPurchased ? new Date().toISOString() : null,
-      }
+    const p = products.value[idx]
+    const newPurchased = !p.purchased
+
+    // 1. Always update UI immediately
+    products.value[idx] = {
+      ...p,
+      purchased: newPurchased,
+      purchasedBy: newPurchased ? purchasedBy : null,
+      purchasedAt: newPurchased ? new Date().toISOString() : null,
     }
 
-    if (navigator.onLine) {
-      try {
-        const updated = await productService.togglePurchase(listId, productId, purchasedBy)
-        await fetchProducts()
-        return updated
-      } catch (e: any) {
-        if (navigator.onLine) {
-          if (original && idx !== -1) products.value[idx] = original
-          error.value = e.message ?? 'Fehler beim Umschalten des Kaufstatus'
-          throw e
-        }
-      }
-    }
-
-    // Offline: queue for sync
-    const product = products.value[idx]
+    // 2. Always save to IndexedDB
     await db.products.update(productId, {
-      purchased: product.purchased,
-      purchasedBy: product.purchasedBy ?? undefined,
-      purchasedAt: product.purchasedAt ?? undefined,
+      purchased: newPurchased,
+      purchasedBy: newPurchased ? purchasedBy : undefined,
+      purchasedAt: newPurchased ? new Date().toISOString() : undefined,
       synced: false,
     })
 
-    await syncService.addPendingChange({
-      type: 'toggle',
-      entity: 'product',
-      entityId: productId,
-      listId,
-      payload: { purchasedBy },
-      timestamp: new Date().toISOString(),
-    })
-
-    return product
+    // 3. Try to sync to server
+    try {
+      await productService.togglePurchase(listId, productId, purchasedBy)
+      await db.products.update(productId, { synced: true })
+    } catch (e: any) {
+      if (e.response?.status === 409) {
+        // Conflict: server wins - refetch
+        await fetchProducts()
+        return
+      }
+      // Queue for batch sync
+      await syncService.addPendingChange({
+        type: 'toggle',
+        entity: 'product',
+        entityId: productId,
+        listId,
+        payload: { purchasedBy },
+        timestamp: new Date().toISOString(),
+      })
+    }
   }
 
   async function removeProduct(productId: string) {
-    const removed = products.value.find((p) => p.id === productId)
+    // 1. Always update UI immediately
     products.value = products.value.filter((p) => p.id !== productId)
 
-    if (navigator.onLine) {
-      try {
-        await productService.remove(listId, productId)
-        return
-      } catch {
-        if (navigator.onLine) {
-          if (removed) products.value.push(removed)
-          throw new Error('Fehler beim Ausblenden')
-        }
-      }
-    }
-
-    // Offline: queue for sync
+    // 2. Always save to IndexedDB
     await db.products.update(productId, {
       deletedAt: new Date().toISOString(),
       synced: false,
     })
 
-    await syncService.addPendingChange({
-      type: 'delete',
-      entity: 'product',
-      entityId: productId,
-      listId,
-      payload: {},
-      timestamp: new Date().toISOString(),
-    })
+    // 3. Try to sync to server
+    try {
+      await productService.remove(listId, productId)
+      await db.products.update(productId, { synced: true })
+    } catch {
+      // Queue for batch sync
+      await syncService.addPendingChange({
+        type: 'delete',
+        entity: 'product',
+        entityId: productId,
+        listId,
+        payload: {},
+        timestamp: new Date().toISOString(),
+      })
+    }
   }
 
   async function restoreProduct(productId: string) {
@@ -293,10 +285,10 @@ export function useProducts(listId: string) {
   }
 
   async function syncPending() {
-    if (!navigator.onLine) return null
     try {
       const result = await syncService.syncPendingChanges(listId)
       if (result && (result.synced > 0 || result.failed > 0)) {
+        // After sync, get authoritative state from server
         await fetchProducts()
       }
       return result
