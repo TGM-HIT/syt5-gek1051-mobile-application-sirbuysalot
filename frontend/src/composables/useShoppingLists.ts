@@ -1,6 +1,7 @@
 import { ref } from 'vue'
 import { listService } from '@/services/listService'
 import { useUser } from '@/composables/useUser'
+import { db } from '@/db'
 import type { ShoppingList } from '@/types'
 
 const lists = ref<ShoppingList[]>([])
@@ -13,6 +14,38 @@ export function useShoppingLists() {
 
   let initialLoad = true
 
+  async function cacheLists(items: ShoppingList[]) {
+    for (const list of items) {
+      await db.shoppingLists.put({
+        id: list.id,
+        name: list.name,
+        accessCode: list.accessCode ?? undefined,
+        createdAt: list.createdAt,
+        updatedAt: list.updatedAt,
+        deletedAt: list.deletedAt ?? undefined,
+        version: list.version,
+        synced: true,
+      })
+    }
+  }
+
+  async function loadFromCache(): Promise<ShoppingList[]> {
+    const cached = await db.shoppingLists
+      .filter((l) => !l.deletedAt && myListIds.value.includes(l.id!))
+      .toArray()
+    return cached.map((l) => ({
+      id: l.id!,
+      name: l.name,
+      accessCode: l.accessCode ?? null,
+      createdAt: l.createdAt,
+      updatedAt: l.updatedAt,
+      deletedAt: l.deletedAt ?? null,
+      version: l.version,
+      products: [],
+      users: [],
+    }))
+  }
+
   async function fetchLists() {
     if (initialLoad) {
       loading.value = true
@@ -21,8 +54,16 @@ export function useShoppingLists() {
     try {
       const all = await listService.getAll()
       lists.value = all.filter((l) => myListIds.value.includes(l.id))
+      await cacheLists(lists.value)
     } catch (e: any) {
-      error.value = e.message ?? 'Fehler beim Laden der Listen'
+      if (!navigator.onLine) {
+        const cached = await loadFromCache()
+        if (cached.length > 0 || lists.value.length === 0) {
+          lists.value = cached
+        }
+      } else {
+        error.value = e.message ?? 'Fehler beim Laden der Listen'
+      }
     } finally {
       loading.value = false
       initialLoad = false
@@ -50,8 +91,8 @@ export function useShoppingLists() {
   async function fetchDeletedLists() {
     try {
       deletedLists.value = await listService.getDeleted()
-    } catch (e: any) {
-      error.value = e.message ?? 'Fehler beim Laden der gelöschten Listen'
+    } catch {
+      // silent when offline
     }
   }
 
