@@ -277,6 +277,45 @@ export function useProducts(listId: string) {
     }
   }
 
+  async function reorderProducts(order: { id: string; position: number }[]) {
+    // 1. Always update UI immediately
+    for (const item of order) {
+      const p = products.value.find((p) => p.id === item.id)
+      if (p) p.position = item.position
+    }
+
+    // 2. Always save to IndexedDB
+    for (const item of order) {
+      try {
+        await db.products.update(item.id, { position: item.position, synced: false })
+      } catch {
+        // non-critical
+      }
+    }
+
+    // 3. Try to sync to server
+    try {
+      await productService.reorder(listId, order)
+      for (const item of order) {
+        try {
+          await db.products.update(item.id, { synced: true })
+        } catch {
+          // non-critical
+        }
+      }
+    } catch {
+      // Queue for batch sync
+      await syncService.addPendingChange({
+        type: 'reorder',
+        entity: 'product',
+        entityId: `reorder-${listId}`,
+        listId,
+        payload: { order },
+        timestamp: new Date().toISOString(),
+      })
+    }
+  }
+
   async function restoreProduct(productId: string) {
     const restored = await productService.restore(listId, productId)
     await fetchProducts()
@@ -309,6 +348,7 @@ export function useProducts(listId: string) {
     updateProduct,
     togglePurchase,
     removeProduct,
+    reorderProducts,
     restoreProduct,
     syncPending,
   }

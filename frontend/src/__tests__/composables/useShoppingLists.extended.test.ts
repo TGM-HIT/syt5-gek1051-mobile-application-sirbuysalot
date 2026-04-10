@@ -16,6 +16,18 @@ vi.mock('@/services/listService', () => ({
   },
 }))
 
+vi.mock('@/db', () => ({
+  db: {
+    shoppingLists: {
+      put: vi.fn().mockResolvedValue('id'),
+      get: vi.fn().mockResolvedValue(null),
+      filter: vi.fn().mockReturnValue({
+        toArray: vi.fn().mockResolvedValue([]),
+      }),
+    },
+  },
+}))
+
 const mockMyListIds = ref<string[]>([])
 vi.mock('@/composables/useUser', () => ({
   useUser: () => ({

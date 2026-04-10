@@ -13,6 +13,18 @@ vi.mock('@/services/listService', () => ({
   },
 }))
 
+vi.mock('@/db', () => ({
+  db: {
+    shoppingLists: {
+      put: vi.fn().mockResolvedValue('id'),
+      get: vi.fn().mockResolvedValue(null),
+      filter: vi.fn().mockReturnValue({
+        toArray: vi.fn().mockResolvedValue([]),
+      }),
+    },
+  },
+}))
+
 const mockMyListIds = ref<string[]>([])
 vi.mock('@/composables/useUser', () => ({
   useUser: () => ({
@@ -71,13 +83,14 @@ describe('useShoppingLists', () => {
     expect(loading.value).toBe(false)
   })
 
-  it('fetchLists sets error on failure', async () => {
+  it('fetchLists loads from cache on failure', async () => {
     vi.mocked(listService.getAll).mockRejectedValue(new Error('Network error'))
 
-    const { error, fetchLists } = useShoppingLists()
+    const { lists, fetchLists } = useShoppingLists()
     await fetchLists()
 
-    expect(error.value).toBe('Network error')
+    // Falls back to cache (empty in test), no error shown
+    expect(lists.value).toEqual([])
   })
 
   it('createList prepends to the list', async () => {

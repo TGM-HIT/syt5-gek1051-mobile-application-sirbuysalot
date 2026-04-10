@@ -13,6 +13,20 @@ vi.mock('@/services/tagService', () => ({
   },
 }))
 
+vi.mock('@/db', () => ({
+  db: {
+    tags: {
+      where: vi.fn().mockReturnValue({
+        equals: vi.fn().mockReturnValue({
+          delete: vi.fn().mockResolvedValue(0),
+          toArray: vi.fn().mockResolvedValue([]),
+        }),
+      }),
+      bulkPut: vi.fn().mockResolvedValue([]),
+    },
+  },
+}))
+
 function makeTag(overrides: Partial<Tag> = {}): Tag {
   return {
     id: 't1',

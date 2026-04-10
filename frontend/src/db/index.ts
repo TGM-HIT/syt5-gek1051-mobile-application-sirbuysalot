@@ -40,7 +40,7 @@ export interface ProductTag {
 
 export interface PendingChange {
   id?: number
-  type: 'create' | 'update' | 'delete' | 'toggle'
+  type: 'create' | 'update' | 'delete' | 'toggle' | 'reorder'
   entity: 'product' | 'list'
   entityId?: string
   listId: string

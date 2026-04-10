@@ -55,14 +55,11 @@ export function useShoppingLists() {
       const all = await listService.getAll()
       lists.value = all.filter((l) => myListIds.value.includes(l.id))
       await cacheLists(lists.value)
-    } catch (e: any) {
-      if (!navigator.onLine) {
-        const cached = await loadFromCache()
-        if (cached.length > 0 || lists.value.length === 0) {
-          lists.value = cached
-        }
-      } else {
-        error.value = e.message ?? 'Fehler beim Laden der Listen'
+    } catch {
+      // Any error (network, timeout, etc): load from cache
+      const cached = await loadFromCache()
+      if (cached.length > 0 || lists.value.length === 0) {
+        lists.value = cached
       }
     } finally {
       loading.value = false

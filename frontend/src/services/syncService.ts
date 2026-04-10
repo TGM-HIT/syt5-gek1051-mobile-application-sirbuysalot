@@ -23,6 +23,22 @@ export const syncService = {
   },
 
   async addPendingChange(change: Omit<PendingChange, 'id'>): Promise<number> {
+    // Deduplicate: if there's already a pending change for the same entity,
+    // replace it with the latest desired state instead of stacking duplicates
+    if (change.entityId) {
+      const existing = await db.pendingChanges
+        .where('listId').equals(change.listId)
+        .filter((c) => c.entityId === change.entityId && c.entity === change.entity)
+        .first()
+      if (existing && existing.id != null) {
+        await db.pendingChanges.update(existing.id, {
+          type: change.type,
+          payload: change.payload,
+          timestamp: change.timestamp,
+        })
+        return existing.id
+      }
+    }
     return db.pendingChanges.add(change as PendingChange)
   },
 
@@ -44,14 +60,16 @@ export const syncService = {
       })),
     })
 
-    // Remove successfully synced changes from local DB
+    // Remove all processed changes (synced + permanently failed)
+    // Failed changes (e.g. "product not found") can't be retried successfully
+    const processedIds = data.results.map((r) => r.id)
+
+    await db.pendingChanges.bulkDelete(processedIds)
+
+    // Mark local entities as synced for successfully processed changes
     const syncedIds = data.results
       .filter((r) => r.status === 'synced')
       .map((r) => r.id)
-
-    await db.pendingChanges.bulkDelete(syncedIds)
-
-    // Mark local entities as synced
     for (const change of pending) {
       if (syncedIds.includes(change.id!)) {
         if (change.entity === 'product' && change.entityId) {

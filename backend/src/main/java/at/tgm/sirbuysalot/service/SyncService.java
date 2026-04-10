@@ -113,6 +113,19 @@ public class SyncService {
                 product.setDeletedAt(LocalDateTime.now());
                 productRepository.save(product);
             }
+            case "reorder" -> {
+                List<Map<String, Object>> order = (List<Map<String, Object>>) payload.get("order");
+                if (order != null) {
+                    for (Map<String, Object> item : order) {
+                        UUID id = UUID.fromString((String) item.get("id"));
+                        int position = ((Number) item.get("position")).intValue();
+                        productRepository.findById(id).ifPresent(p -> {
+                            p.setPosition(position);
+                            productRepository.save(p);
+                        });
+                    }
+                }
+            }
         }
     }
 

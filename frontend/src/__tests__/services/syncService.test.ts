@@ -13,10 +13,13 @@ vi.mock('@/db', () => {
   const pendingChanges = {
     where: vi.fn().mockReturnThis(),
     equals: vi.fn().mockReturnThis(),
+    filter: vi.fn().mockReturnThis(),
+    first: vi.fn().mockResolvedValue(null),
     sortBy: vi.fn(),
     orderBy: vi.fn().mockReturnThis(),
     toArray: vi.fn(),
     add: vi.fn(),
+    update: vi.fn(),
     delete: vi.fn(),
     bulkDelete: vi.fn(),
     count: vi.fn(),
@@ -131,14 +134,14 @@ describe('syncService', () => {
     expect(api.post).not.toHaveBeenCalled()
   })
 
-  it('syncPendingChanges keeps failed items', async () => {
+  it('syncPendingChanges removes all processed items including failed', async () => {
     const changes = [makePending({ id: 1 }), makePending({ id: 2, entityId: 'p2' })]
     vi.mocked(db.pendingChanges.where('').equals('').sortBy).mockResolvedValue(changes)
 
     const batchResponse = {
       results: [
         { id: 1, status: 'synced' as const },
-        { id: 2, status: 'failed' as const, error: 'Conflict' },
+        { id: 2, status: 'failed' as const, error: 'Not found' },
       ],
       synced: 1,
       failed: 1,
@@ -149,8 +152,8 @@ describe('syncService', () => {
 
     const result = await syncService.syncPendingChanges('list-1')
 
-    // Only synced id=1 should be deleted, not id=2
-    expect(db.pendingChanges.bulkDelete).toHaveBeenCalledWith([1])
+    // All processed changes are removed (synced + permanently failed)
+    expect(db.pendingChanges.bulkDelete).toHaveBeenCalledWith([1, 2])
     expect(result!.failed).toBe(1)
   })
 

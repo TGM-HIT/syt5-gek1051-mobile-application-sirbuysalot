@@ -26,8 +26,10 @@ export function useTags(listId: string) {
       tags.value = await tagService.getAll(listId)
       await cacheTags(tags.value)
     } catch {
-      if (!navigator.onLine) {
-        tags.value = await loadFromCache()
+      // Any error (network, timeout, etc): load from cache
+      const cached = await loadFromCache()
+      if (cached.length > 0 || tags.value.length === 0) {
+        tags.value = cached
       }
     } finally {
       loading.value = false

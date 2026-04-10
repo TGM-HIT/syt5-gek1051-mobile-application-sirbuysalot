@@ -92,7 +92,7 @@ watch(isOnline, (online) => {
 
 onMounted(() => {
   updatePendingCount()
-  pollTimer = setInterval(updatePendingCount, 5000)
+  pollTimer = setInterval(updatePendingCount, 2000)
 
   // Connect WebSocket for this list
   if (isOnline.value) {

@@ -456,7 +456,6 @@ import { useProducts } from '@/composables/useProducts'
 import { useUser } from '@/composables/useUser'
 import { useOnlineStatus } from '@/composables/useOnlineStatus'
 import { listService } from '@/services/listService'
-import { productService } from '@/services/productService'
 import ProductEditDialog from '@/components/ProductEditDialog.vue'
 import TagManagementDialog from '@/components/TagManagementDialog.vue'
 import SyncStatusIndicator from '@/components/SyncStatusIndicator.vue'
@@ -471,7 +470,7 @@ const { displayName } = useUser()
 const showSnackbar = inject<(text: string, color?: string, icon?: string) => void>('showSnackbar')!
 
 const { isOnline } = useOnlineStatus()
-const { products, deletedProducts, loading, error, fetchProducts, fetchDeletedProducts, addProduct, updateProduct, togglePurchase, removeProduct, restoreProduct, syncPending } = useProducts(listId)
+const { products, deletedProducts, loading, error, fetchProducts, fetchDeletedProducts, addProduct, updateProduct, togglePurchase, removeProduct, reorderProducts, restoreProduct, syncPending } = useProducts(listId)
 const { tags: allTags, fetchTags, createTag, removeTag: deleteTag, setProductTags } = useTags(listId)
 
 const listName = ref('...')
@@ -559,13 +558,19 @@ const shareUrl = computed(() => {
 })
 
 let pollInterval: ReturnType<typeof setInterval> | null = null
+let isSyncing = false
 
 // Sync pending changes when coming back online
 watch(isOnline, async (online) => {
   if (online) {
-    await syncPending()
-    fetchProducts()
-    fetchTags()
+    isSyncing = true
+    try {
+      await syncPending()
+      await fetchProducts()
+      fetchTags()
+    } finally {
+      isSyncing = false
+    }
   }
 })
 
@@ -593,9 +598,9 @@ onMounted(async () => {
   fetchProducts()
   fetchTags()
 
-  // Auto-refresh every 5 seconds for real-time sync (only when online)
+  // Auto-refresh every 5 seconds for real-time sync (only when online, not during sync)
   pollInterval = setInterval(() => {
-    if (!navigator.onLine) return
+    if (!navigator.onLine || isSyncing) return
     fetchProducts()
     fetchTags()
   }, 5000)
@@ -714,11 +719,7 @@ async function onDeleteProduct() {
 
 async function onDragEnd() {
   const order = sortedProducts.value.map((p, idx) => ({ id: p.id, position: idx }))
-  try {
-    await productService.reorder(listId, order)
-  } catch {
-    fetchProducts()
-  }
+  await reorderProducts(order)
 }
 
 function formatPrice(price: number): string {
